@@ -1,0 +1,15 @@
+name: CI Placeholder
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Placeholder Step
+        run: echo "This is a placeholder for the future CI/CD pipeline (lint, test, build)."
