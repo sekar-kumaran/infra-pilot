@@ -15,24 +15,22 @@ from sqlalchemy.dialects import postgresql
 import uuid
 
 def _insert_permissions(connection):
-    permissions_table = sa.table(
-        'permissions',
-        sa.column('id', sa.UUID),
-        sa.column('name', sa.String),
-        sa.column('description', sa.String)
-    )
-    
     permissions = [
-        {"id": uuid.uuid4(), "name": "events:read", "description": "Read raw events"},
-        {"id": uuid.uuid4(), "name": "events:ingest", "description": "Ingest raw events"},
-        {"id": uuid.uuid4(), "name": "alerts:read", "description": "Read normalized alerts"},
-        {"id": uuid.uuid4(), "name": "alerts:update", "description": "Update/Acknowledge/Resolve alerts"},
-        {"id": uuid.uuid4(), "name": "incidents:read", "description": "Read incidents"},
-        {"id": uuid.uuid4(), "name": "incidents:update", "description": "Update/Acknowledge/Resolve incidents"},
-        {"id": uuid.uuid4(), "name": "incidents:manage", "description": "Manage incidents completely"},
+        {"id": str(uuid.uuid4()), "name": "events:read", "description": "Read raw events"},
+        {"id": str(uuid.uuid4()), "name": "events:ingest", "description": "Ingest raw events"},
+        {"id": str(uuid.uuid4()), "name": "alerts:read", "description": "Read normalized alerts"},
+        {"id": str(uuid.uuid4()), "name": "alerts:update", "description": "Update/Acknowledge/Resolve alerts"},
+        {"id": str(uuid.uuid4()), "name": "incidents:read", "description": "Read incidents"},
+        {"id": str(uuid.uuid4()), "name": "incidents:update", "description": "Update/Acknowledge/Resolve incidents"},
+        {"id": str(uuid.uuid4()), "name": "incidents:manage", "description": "Manage incidents completely"},
     ]
-    
-    connection.execute(permissions_table.insert().values(permissions))
+    for p in permissions:
+        connection.execute(
+            sa.text(
+                "INSERT INTO permissions (id, name, description, created_at) VALUES (CAST(:id AS UUID), :name, :description, CURRENT_TIMESTAMP) ON CONFLICT (name) DO NOTHING"
+            ),
+            p
+        )
     
     # Assign permissions to roles
     roles_table = sa.table('roles', sa.column('id', sa.UUID), sa.column('name', sa.String))

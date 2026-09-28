@@ -28,7 +28,21 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
     try:
         user = register_user(db, email=user_in.email, password=user_in.password)
         db.commit()
-        return user
+        
+        from app.services.rbac import get_user_roles, get_user_permissions
+        roles = get_user_roles(db, user.id)
+        permissions = get_user_permissions(db, user.id)
+        
+        user_response = UserResponse(
+            id=user.id,
+            email=user.email,
+            is_active=user.is_active,
+            created_at=user.created_at,
+            updated_at=user.updated_at,
+            role=roles[0] if roles else "",
+            permissions=permissions
+        )
+        return user_response
     except AuthException as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -74,8 +88,20 @@ def login(user_in: UserLogin, db: Session = Depends(get_db)):
 
 
 @router.get("/me", response_model=UserResponse)
-def read_current_user(current_user: User = Depends(get_current_user)):
+def read_current_user(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """
     Get current user information.
     """
-    return current_user
+    from app.services.rbac import get_user_roles, get_user_permissions
+    roles = get_user_roles(db, current_user.id)
+    permissions = get_user_permissions(db, current_user.id)
+    
+    return UserResponse(
+        id=current_user.id,
+        email=current_user.email,
+        is_active=current_user.is_active,
+        created_at=current_user.created_at,
+        updated_at=current_user.updated_at,
+        role=roles[0] if roles else "",
+        permissions=permissions
+    )

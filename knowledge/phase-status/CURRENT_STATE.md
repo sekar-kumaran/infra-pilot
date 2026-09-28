@@ -4,7 +4,7 @@
 Phase 1 — Core Platform
 
 ## Phase Status
-PHASE_1.8_IMPLEMENTED
+PHASE_1.15_IMPLEMENTED
 
 ## Completed
 - Repository architecture
@@ -25,18 +25,28 @@ PHASE_1.8_IMPLEMENTED
 - Phase 1.6: Integration Adapter & Provider Framework
 - Phase 1.7: Event Ingestion & Normalization
 - Phase 1.8: Incident Engine & State Machine
+- Phase 1.9: Notification & Operational Intelligence Foundation
+- Phase 1.10: Automation, Playbooks & Policy Engine Foundation
+- Phase 1.11: Frontend Operations Console & Full Backend Integration
+- Phase 1.12: Prometheus Integration & Provider Framework Hardening
+- Phase 1.13: Nagios Integration
+- Phase 1.14: Real Ansible Automation Provider
+- Phase 1.15: Real Kubernetes Automation Provider
+
+## Phase 1.15 Details
+- **Kubernetes is a REAL provider**: Interacts with Kubernetes API directly via REST instead of kubectl or mocked responses.
+- **k3s Test Environment**: A real disposable k3s cluster is used in E2E tests for verification.
+- **Strict Verification Logic**: High risk automation actions on Kubernetes are mandated to undergo policy and risk validation, and the execution relies on bounded polling to verify success.
+- **Frontend Integration**: Kubernetes specific resources and details are visible in the executions panel.
 
 ## Not Yet Implemented
-- Phase 1.9: Automation & Remediation Trigger System
-- API Gateway optimizations
-- UI feature implementation
-- Real Provider Plugins (Prometheus, Nagios, K8s)
+- Complete system E2E testing framework
 
 ## Current Architecture
-InfraPilot is a FastAPI modular monolith serving a Next.js web UI via REST. Background operations and integrations run in isolated RabbitMQ + Celery workers. PostgreSQL stores application state, while Redis handles caching. It orchestrates external systems (Prometheus, Nagios, Terraform, etc.) without replacing their specialized roles. Argo CD drives Kubernetes deployments. AI recommendations are strictly gated by a Policy Engine.
+InfraPilot is a FastAPI modular monolith serving a Next.js web UI via REST. Background operations and integrations run in isolated RabbitMQ + Celery workers. PostgreSQL stores application state. It orchestrates external systems (Prometheus, Nagios, Terraform, etc.) without replacing their specialized roles. Argo CD drives Kubernetes deployments. AI recommendations are strictly gated by a Policy Engine.
 
 ## Next Phase
-Phase 1.9 — Notification & Automation Trigger System
+Phase 2.0 — Launch Preparation
 
 ## Blocking Issues
 None
@@ -52,4 +62,4 @@ None
 - ADR-008: Argo CD GitOps
 
 ## Last Updated
-2026-09-22
+2026-09-23

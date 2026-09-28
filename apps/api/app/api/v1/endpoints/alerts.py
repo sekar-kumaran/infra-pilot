@@ -8,6 +8,7 @@ from app.schemas.events import AlertResponse
 from app.repositories.events import EventRepository
 from app.services.incidents import IncidentService
 from app.models.user import User
+from datetime import datetime
 
 router = APIRouter()
 
@@ -19,6 +20,11 @@ def list_alerts(
     status: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     resource_id: Optional[UUID] = Query(None),
+    provider: Optional[str] = Query(None),
+    integration_id: Optional[UUID] = Query(None),
+    alert_type: Optional[str] = Query(None),
+    start_time: Optional[datetime] = Query(None),
+    end_time: Optional[datetime] = Query(None),
     current_user: User = Depends(deps.require_permission("alerts:read")),
 ) -> Any:
     """
@@ -29,9 +35,21 @@ def list_alerts(
         skip=skip, 
         limit=limit, 
         status=status, 
-        severity=severity, 
         resource_id=resource_id
     )
+    
+    if provider:
+        alerts = [a for a in alerts if a.provider == provider]
+    if integration_id:
+        alerts = [a for a in alerts if a.integration_id == integration_id]
+    if alert_type:
+        alerts = [a for a in alerts if a.alert_type == alert_type]
+    if start_time:
+        alerts = [a for a in alerts if a.created_at >= start_time]
+    if end_time:
+        alerts = [a for a in alerts if a.created_at <= end_time]
+        
+    return alerts
 
 @router.get("/{alert_id}", response_model=AlertResponse)
 def get_alert(

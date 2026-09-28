@@ -162,6 +162,13 @@ class IntegrationService:
             # Check if resource already exists
             existing = resource_repo.get_by_external_identity(dr.provider, dr.external_id)
             
+            # Resolve parent_id if parent_external_id is provided
+            parent_id = None
+            if dr.parent_external_id:
+                parent_resource = resource_repo.get_by_external_identity(dr.provider, dr.parent_external_id)
+                if parent_resource:
+                    parent_id = parent_resource.id
+            
             if existing:
                 # Update
                 update_schema = InfrastructureResourceUpdate(
@@ -169,7 +176,8 @@ class IntegrationService:
                     display_name=dr.display_name,
                     status=dr.status,
                     description=dr.description,
-                    metadata_=dr.metadata
+                    metadata_=dr.metadata,
+                    parent_id=parent_id
                 )
                 resource_repo.update(existing, update_schema)
             else:
@@ -182,7 +190,8 @@ class IntegrationService:
                     resource_type=dr.resource_type,
                     status=dr.status,
                     description=dr.description,
-                    metadata_=dr.metadata
+                    metadata_=dr.metadata,
+                    parent_id=parent_id
                 )
                 resource_repo.create(create_schema)
                 

@@ -10,9 +10,38 @@ from app.repositories.incidents import IncidentRepository
 from app.repositories.events import EventRepository
 from app.services.incidents import IncidentService
 from app.models.user import User
+from datetime import datetime
 from app.models.enums import IncidentStatus
+from app.services.audit import log_event
+from app.services.incident_pipeline import IncidentPipeline
+from app.schemas.remediation import RemediationOption, RemediationPlanCreate, RemediationPlanResponse
 
 router = APIRouter()
+
+@router.get("/statistics")
+def get_incident_statistics(
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.require_permission("incidents:read")),
+) -> Any:
+    """
+    Get aggregated application statistics for incidents.
+    """
+    from sqlalchemy import func
+    from app.models.incidents import Incident
+    
+    total = db.query(func.count(Incident.id)).scalar()
+    
+    status_counts = db.query(Incident.status, func.count(Incident.id)).group_by(Incident.status).all()
+    status_stats = {s: c for s, c in status_counts}
+    
+    severity_counts = db.query(Incident.severity, func.count(Incident.id)).group_by(Incident.severity).all()
+    severity_stats = {s: c for s, c in severity_counts}
+    
+    return {
+        "total_incidents": total,
+        "by_status": status_stats,
+        "by_severity": severity_stats
+    }
 
 @router.get("", response_model=List[IncidentResponse])
 def list_incidents(
@@ -22,19 +51,37 @@ def list_incidents(
     status: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     primary_resource_id: Optional[UUID] = Query(None),
+    priority: Optional[str] = Query(None),
+    source: Optional[str] = Query(None),
+    start_time: Optional[datetime] = Query(None),
+    end_time: Optional[datetime] = Query(None),
     current_user: User = Depends(deps.require_permission("incidents:read")),
 ) -> Any:
     """
     List incidents with filtering.
     """
     repo = IncidentRepository(db)
-    return repo.get_incidents(
+    # the repository might not support all these filters yet, we'd need to update it
+    # For now, pass what we can or filter in memory if repo doesn't support
+    incidents = repo.get_incidents(
         skip=skip, 
         limit=limit, 
         status=status, 
         severity=severity, 
         primary_resource_id=primary_resource_id
     )
+    
+    # In-memory filter for the newly added parameters if repository doesn't support them
+    if priority:
+        incidents = [i for i in incidents if i.priority == priority]
+    if source:
+        incidents = [i for i in incidents if i.source == source]
+    if start_time:
+        incidents = [i for i in incidents if i.created_at >= start_time]
+    if end_time:
+        incidents = [i for i in incidents if i.created_at <= end_time]
+        
+    return incidents
 
 @router.get("/{incident_id}", response_model=IncidentResponse)
 def get_incident(
@@ -168,3 +215,36 @@ def get_incident_alerts(
         limit=limit,
         resource_id=incident.primary_resource_id
     )
+@router.get("/{id}/remediation-options", response_model=List[RemediationOption])
+def get_remediation_options(
+    id: UUID,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.require_permission("incidents:read")),
+) -> Any:
+    """
+    Returns available remediation strategies for the incident.
+    """
+    repo = IncidentRepository(db)
+    incident = repo.get_incident_by_id(id)
+    if not incident:
+        raise HTTPException(status_code=404, detail="Incident not found")
+        
+    pipeline = IncidentPipeline(db)
+    return pipeline.evaluate_remediation_options(incident)
+
+@router.post("/{id}/remediation", response_model=RemediationPlanResponse)
+def create_remediation_plan(
+    id: UUID,
+    plan_in: RemediationPlanCreate,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.require_permission("incidents:write")),
+) -> Any:
+    """
+    Creates a remediation plan for the incident.
+    """
+    pipeline = IncidentPipeline(db)
+    try:
+        plan = pipeline.create_remediation_plan(id, plan_in.strategy, plan_in.parameters)
+        return plan
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

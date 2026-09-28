@@ -14,12 +14,56 @@ from app.services.audit import log_event
 
 # Allowed state transitions for incidents
 ALLOWED_INCIDENT_TRANSITIONS = {
-    IncidentStatus.OPEN.value: {IncidentStatus.INVESTIGATING.value, IncidentStatus.RESOLVED.value, IncidentStatus.SUPPRESSED.value},
-    IncidentStatus.INVESTIGATING.value: {IncidentStatus.DIAGNOSED.value, IncidentStatus.REMEDIATING.value, IncidentStatus.RESOLVED.value},
-    IncidentStatus.DIAGNOSED.value: {IncidentStatus.REMEDIATING.value, IncidentStatus.RESOLVED.value},
-    IncidentStatus.REMEDIATING.value: {IncidentStatus.VERIFYING.value, IncidentStatus.RESOLVED.value},
-    IncidentStatus.VERIFYING.value: {IncidentStatus.RESOLVED.value, IncidentStatus.INVESTIGATING.value},
-    IncidentStatus.RESOLVED.value: {IncidentStatus.CLOSED.value, IncidentStatus.INVESTIGATING.value},
+    IncidentStatus.OPEN.value: {
+        IncidentStatus.ACKNOWLEDGED.value, 
+        IncidentStatus.INVESTIGATING.value, 
+        IncidentStatus.REMEDIATION_PENDING.value,
+        IncidentStatus.RESOLVED.value, 
+        IncidentStatus.SUPPRESSED.value
+    },
+    IncidentStatus.ACKNOWLEDGED.value: {
+        IncidentStatus.INVESTIGATING.value,
+        IncidentStatus.REMEDIATION_PENDING.value,
+        IncidentStatus.RESOLVED.value
+    },
+    IncidentStatus.INVESTIGATING.value: {
+        IncidentStatus.REMEDIATION_PENDING.value, 
+        IncidentStatus.RESOLVED.value
+    },
+    IncidentStatus.REMEDIATION_PENDING.value: {
+        IncidentStatus.APPROVAL_REQUIRED.value, 
+        IncidentStatus.REMEDIATION_RUNNING.value,
+        IncidentStatus.FAILED.value
+    },
+    IncidentStatus.APPROVAL_REQUIRED.value: {
+        IncidentStatus.REMEDIATION_RUNNING.value,
+        IncidentStatus.FAILED.value
+    },
+    IncidentStatus.REMEDIATION_RUNNING.value: {
+        IncidentStatus.VERIFYING.value,
+        IncidentStatus.FAILED.value
+    },
+    IncidentStatus.VERIFYING.value: {
+        IncidentStatus.RECOVERED.value, 
+        IncidentStatus.FAILED.value
+    },
+    IncidentStatus.RECOVERED.value: {
+        IncidentStatus.RESOLVED.value,
+        IncidentStatus.CLOSED.value
+    },
+    IncidentStatus.FAILED.value: {
+        IncidentStatus.ESCALATED.value,
+        IncidentStatus.REMEDIATION_PENDING.value, # retry
+        IncidentStatus.INVESTIGATING.value
+    },
+    IncidentStatus.ESCALATED.value: {
+        IncidentStatus.INVESTIGATING.value,
+        IncidentStatus.RESOLVED.value
+    },
+    IncidentStatus.RESOLVED.value: {
+        IncidentStatus.CLOSED.value, 
+        IncidentStatus.INVESTIGATING.value
+    },
     IncidentStatus.CLOSED.value: set(), # Terminal state
     IncidentStatus.SUPPRESSED.value: {IncidentStatus.OPEN.value}
 }

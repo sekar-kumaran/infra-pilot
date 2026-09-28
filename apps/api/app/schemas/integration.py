@@ -26,6 +26,9 @@ class IntegrationResponse(IntegrationBase):
     created_at: datetime
     updated_at: datetime
     last_checked_at: Optional[datetime] = None
+    circuit_state: str = "CLOSED"
+    failure_count: int = 0
+    last_failure_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

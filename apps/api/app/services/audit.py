@@ -16,15 +16,23 @@ def log_event(
     """
     Log an audit event.
     """
+    import copy
+    
+    def redact_dict(d: dict) -> dict:
+        redacted = copy.deepcopy(d)
+        sensitive_substrings = ["password", "secret", "token", "key", "authorization", "kubeconfig"]
+        for k, v in redacted.items():
+            if any(sub in str(k).lower() for sub in sensitive_substrings):
+                redacted[k] = "***REDACTED***"
+            elif isinstance(v, dict):
+                redacted[k] = redact_dict(v)
+            elif isinstance(v, list):
+                redacted[k] = [redact_dict(i) if isinstance(i, dict) else i for i in v]
+        return redacted
+
     safe_metadata = {}
     if metadata:
-        safe_metadata = {k: v for k, v in metadata.items()}
-        # Strip out sensitive info from metadata just in case
-        sensitive_keys = {"password", "password_hash", "jwt", "authorization", "database_url", "auth_secret_key"}
-        for k in list(safe_metadata.keys()):
-            if str(k).lower() in sensitive_keys:
-                safe_metadata[k] = "[REDACTED]"
-                
+        safe_metadata = redact_dict(metadata)
     return audit_repo.create_audit_event(
         db=db,
         action=action,

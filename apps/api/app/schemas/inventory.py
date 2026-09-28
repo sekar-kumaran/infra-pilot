@@ -32,6 +32,8 @@ class InfrastructureResourceBase(BaseModel):
     resource_type: ResourceType
     provider: ProviderType
     environment_id: Optional[UUID] = None
+    application_id: Optional[UUID] = None
+    parent_id: Optional[UUID] = None
     external_id: Optional[str] = Field(None, max_length=255)
     status: ResourceStatus = ResourceStatus.UNKNOWN
     description: Optional[str] = Field(None, max_length=1000)
@@ -44,6 +46,8 @@ class InfrastructureResourceUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=255)
     display_name: Optional[str] = Field(None, max_length=255)
     environment_id: Optional[UUID] = None
+    application_id: Optional[UUID] = None
+    parent_id: Optional[UUID] = None
     status: Optional[ResourceStatus] = None
     description: Optional[str] = Field(None, max_length=1000)
     metadata: Optional[Dict[str, Any]] = None

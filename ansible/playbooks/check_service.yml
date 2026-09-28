@@ -1,0 +1,15 @@
+---
+- name: Check Service Status
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Get service status
+      ansible.builtin.service_facts:
+
+    - name: Verify service exists and is running
+      ansible.builtin.assert:
+        that:
+          - "services[service_name + '.service'] is defined"
+          - "services[service_name + '.service'].state == 'running'"
+        fail_msg: "Service {{ service_name }} is not running or does not exist."
+        success_msg: "Service {{ service_name }} is running."

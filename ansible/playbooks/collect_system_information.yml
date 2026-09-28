@@ -1,0 +1,13 @@
+---
+- name: Collect System Information
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Output System Info
+      ansible.builtin.debug:
+        msg: 
+          OS: "{{ ansible_distribution }} {{ ansible_distribution_version }}"
+          Hostname: "{{ ansible_hostname }}"
+          Architecture: "{{ ansible_architecture }}"
+          Memory_MB: "{{ ansible_memtotal_mb }}"
+          CPUs: "{{ ansible_processor_vcpus }}"

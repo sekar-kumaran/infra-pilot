@@ -1,0 +1,4 @@
+--
+- hosts: all
+  tasks:
+    - debug: msg="Dummy playbook check_cpu_usage.yml"

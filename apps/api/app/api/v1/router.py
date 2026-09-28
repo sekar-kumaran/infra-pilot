@@ -1,9 +1,10 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import system, auth, roles, audit, environments, resources, integrations, events, alerts, incidents
+from app.api.v1.endpoints import system, auth, roles, audit, environments, resources, integrations, events, alerts, incidents, automation, providers, remediation, workflows, policies, operations, applications, observability, users
 
 api_router = APIRouter()
 api_router.include_router(system.router, prefix="/system", tags=["System"])
 api_router.include_router(auth.router, prefix="/auth", tags=["Auth"])
+api_router.include_router(users.router, prefix="/users", tags=["Users"])
 api_router.include_router(roles.router, prefix="/roles", tags=["Roles"])
 api_router.include_router(audit.router, prefix="/audit", tags=["audit"])
 api_router.include_router(environments.router, prefix="/environments", tags=["environments"])
@@ -12,3 +13,14 @@ api_router.include_router(integrations.router, prefix="/integrations", tags=["In
 api_router.include_router(events.router, prefix="/events", tags=["Events"])
 api_router.include_router(alerts.router, prefix="/alerts", tags=["Alerts"])
 api_router.include_router(incidents.router, prefix="/incidents", tags=["Incidents"])
+api_router.include_router(automation.router, prefix="/automation", tags=["Automation"])
+api_router.include_router(providers.router, prefix="/providers", tags=["Providers"])
+api_router.include_router(remediation.router, prefix="/remediation", tags=["Remediation"])
+api_router.include_router(workflows.router, prefix="/workflows", tags=["Workflows"])
+api_router.include_router(policies.router, prefix="/policies", tags=["Policies"])
+api_router.include_router(operations.router, prefix="/operations", tags=["Operations"])
+api_router.include_router(applications.router, prefix="/applications", tags=["Applications"])
+api_router.include_router(observability.router, prefix="/observability", tags=["Observability"])
+from app.api.v1.endpoints import infrastructure, governance
+api_router.include_router(infrastructure.router, prefix="/infrastructure", tags=["Infrastructure"])
+api_router.include_router(governance.router, prefix="/governance", tags=["Governance"])

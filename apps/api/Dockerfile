@@ -18,17 +18,17 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app/ ./app/
 COPY alembic/ ./alembic/
 COPY alembic.ini .
+COPY entrypoint.sh .
 
-# Set ownership
-RUN chown -R appuser:appgroup ${APP_HOME}
+# Set ownership + make entrypoint executable
+RUN chown -R appuser:appgroup ${APP_HOME} && chmod +x ${APP_HOME}/entrypoint.sh
 
 # Switch to non-root user
 USER appuser
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=5 \
     CMD curl -f http://localhost:8000/health/live || exit 1
 
-# Using uvicorn directly for simplicity in Phase 1.1
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "entrypoint.sh"]

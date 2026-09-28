@@ -16,17 +16,11 @@ class AuthException(Exception):
         self.message = message
         super().__init__(self.message)
 
-def register_user(db: Session, email: str, password: str) -> User:
+def register_user(db: Session, email: str, password: str, role: str = "ADMIN") -> User:
     normalized_email = email.lower().strip()
     
     existing_user = user_repo.get_by_email(db, normalized_email)
     if existing_user:
-        # Don't leak this normally in API, but service level can raise a specific error
-        # Actually, standard practice is to raise 400 for existing email on register. 
-        # The prompt says: "Duplicate registration safely rejected" 
-        # And "Do not reveal whether an email exists" for invalid login attempts. For registration, 
-        # revealing email exists is standard, but to be safe and strictly adhere to "Duplicate registration safely rejected"
-        # we will raise a standard AuthException that the endpoint translates.
         raise AuthException("Email already registered")
         
     password_hash = get_password_hash(password)
@@ -35,13 +29,8 @@ def register_user(db: Session, email: str, password: str) -> User:
     # First-User Bootstrap (race-condition safe)
     # Lock an arbitrary high ID to serialize bootstrap logic across concurrent txns
     db.execute(text("SELECT pg_advisory_xact_lock(999999)"))
-    admin_count = db.query(UserRole).join(Role).filter(Role.name == "ADMIN").count()
     
-    if admin_count == 0:
-        rbac_service.assign_role(db, user.id, "ADMIN")
-    
-    # Wait, we should also assign default roles if we have them, but for now we won't assign any 
-    # to subsequent users as per instructions.
+    rbac_service.assign_role(db, user.id, role)
     
     audit_service.log_event(
         db=db,

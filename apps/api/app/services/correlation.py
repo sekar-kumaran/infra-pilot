@@ -8,11 +8,12 @@ import logging
 from sqlalchemy.orm import Session
 from app.models.events import RawEvent, Alert
 from app.models.incidents import Incident, IncidentEvent
-from app.models.enums import Severity, IncidentStatus, AlertStatus, IncidentEventType
+from app.models.enums import AlertStatus, Severity, IncidentStatus, IncidentEventType
 from app.repositories.events import EventRepository
 from app.repositories.incidents import IncidentRepository
 from app.core.config import settings
 from app.services.audit import log_event
+from app.services.correlation_rules import CorrelationEngine
 
 logger = logging.getLogger(__name__)
 
@@ -108,27 +109,17 @@ class CorrelationService:
     def correlate_alert(self, alert: Alert) -> Incident:
         """
         Deterministic Rule-based Correlation
-        Strategy: Same resource + Open Incident + 15m Window
+        Strategy: CorrelationEngine executes rules in sequence.
         """
-        if not alert.resource_id:
-            # Global incident if no resource_id
-            correlation_key = f"global_alert_{alert.integration_id}_{alert.alert_type}"
-        else:
-            correlation_key = f"resource_{alert.resource_id}"
-            
-        incident = self.incident_repo.get_open_incident_by_correlation_key(correlation_key)
+        engine = CorrelationEngine(self.db)
+        correlation_result = engine.find_correlation(alert)
+        incident = correlation_result.incident
         
         is_new_incident = False
         
-        if incident:
-            # Check window
-            time_diff = datetime.now(timezone.utc) - incident.updated_at
-            if time_diff > timedelta(minutes=CORRELATION_WINDOW_MINUTES):
-                # Outside window, create new incident
-                incident = None
-        
         if not incident:
             # Create Incident
+            correlation_key = correlation_result.metadata.get("correlation_key", f"global_alert_{alert.integration_id}_{alert.alert_type}")
             incident_data = {
                 "title": f"Incident: {alert.title}",
                 "description": f"Automatically generated incident for alert: {alert.title}",
@@ -137,7 +128,9 @@ class CorrelationService:
                 "primary_resource_id": alert.resource_id,
                 "source": alert.provider,
                 "correlation_key": correlation_key,
-                "opened_at": datetime.now(timezone.utc)
+                "opened_at": datetime.now(timezone.utc),
+                "incident_fingerprint": alert.fingerprint,
+                "correlation_confidence": "HIGH" # Deterministic rules are highly confident
             }
             incident = self.incident_repo.create_incident(incident_data)
             is_new_incident = True
@@ -169,13 +162,17 @@ class CorrelationService:
             incident.updated_at = datetime.now(timezone.utc)
             self.db.flush()
             
-            # Attach timeline event
+            # Attach timeline event with explainability record
+            explainable_record = correlation_result.to_dict()
             self.incident_repo.create_incident_event({
                 "incident_id": incident.id,
                 "event_type": IncidentEventType.ALERT_ATTACHED.value,
                 "source": "system",
-                "message": f"Alert {alert.id} attached to incident",
-                "event_metadata": {"alert_id": str(alert.id)}
+                "message": f"Alert {alert.id} attached to incident via rule: {correlation_result.reason}",
+                "event_metadata": {
+                    "alert_id": str(alert.id),
+                    "explainability": explainable_record
+                }
             })
             
             if new_severity != old_severity:

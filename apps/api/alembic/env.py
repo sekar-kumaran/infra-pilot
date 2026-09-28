@@ -6,15 +6,23 @@ from app.core.config import settings
 from app.database.base import Base
 
 # Import all models here for Alembic autogenerate support
+from app.models.tenant import Tenant
+from app.models.worker import WorkerNode
 from app.models.user import User
-from app.models.rbac import Role, Permission, UserRole, RolePermission
+from app.models.rbac import Role, Permission, UserRole, RolePermission, ResourceScope
 from app.models.audit import AuditEvent
 from app.models.environment import Environment
+from app.models.application import Application
 from app.models.resource import InfrastructureResource
 from app.models.resource_relationship import ResourceRelationship
 from app.models.integration import Integration
 from app.models.events import RawEvent, Alert
 from app.models.incidents import Incident, IncidentEvent
+from app.models.automation import Playbook, PlaybookStep, AutomationExecution, AutomationStepExecution, AutomationApproval, VerificationResult
+from app.models.policy import Policy, PolicyRule, PolicyDecision
+from app.models.failed_events import FailedEvent
+from app.models.remediation import RemediationPlan
+from app.models.workflow import OperationWorkflow, WorkflowStep, WorkflowExecution, WorkflowStepExecution
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool

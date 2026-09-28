@@ -145,3 +145,44 @@ def discover_resources(
     # Trigger Celery Task
     discover_resources_task.delay(str(integration_id))
     return {"message": "Discovery task triggered"}
+
+@router.get("/{integration_id}/metrics", dependencies=[Depends(require_permission("metrics:read"))])
+def get_integration_metrics(
+    *,
+    db: Session = Depends(get_db),
+    integration_id: uuid.UUID,
+    metric_type: str,
+    current_user: User = Depends(get_current_user)
+) -> Any:
+    """
+    Read named metrics from the integration provider.
+    """
+    service = IntegrationService(db)
+    integration = service.get(integration_id)
+    if not integration:
+        raise HTTPException(status_code=404, detail="Integration not found")
+        
+    if integration.status != IntegrationStatus.HEALTHY:
+        raise HTTPException(status_code=400, detail="Integration must be HEALTHY to read metrics")
+        
+    from app.integrations.registry import AdapterRegistry
+    from app.core.encryption import decrypt_secret_payload
+    try:
+        adapter = AdapterRegistry.get_adapter(integration.provider)
+        # Check capability
+        caps = adapter.get_capabilities()
+        if not caps.metrics_read:
+            raise HTTPException(status_code=400, detail="Provider does not support metrics read")
+            
+        secrets = {}
+        if integration.secret_payload:
+            secrets = decrypt_secret_payload(integration.secret_payload)
+            
+        # The adapter needs a way to read metrics.
+        if hasattr(adapter, "read_metrics"):
+            return adapter.read_metrics(integration.configuration, secrets, metric_type=metric_type)
+        else:
+            raise HTTPException(status_code=400, detail="Adapter implementation does not support metrics_read")
+            
+    except ProviderError as e:
+        raise HTTPException(status_code=400, detail=str(e))

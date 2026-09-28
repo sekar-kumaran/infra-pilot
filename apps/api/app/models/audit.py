@@ -8,6 +8,7 @@ class AuditEvent(Base):
     __tablename__ = "audit_events"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True)
     actor_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     action = Column(String, nullable=False, index=True)
     resource_type = Column(String, nullable=False, index=True)

@@ -3,6 +3,7 @@ import logging
 
 from app.models.enums import ProviderType
 from app.integrations.adapter import ProviderAdapter
+from app.integrations.capabilities import ProviderCapabilityRegistry
 from app.integrations.exceptions import ProviderNotFoundError, ProviderConfigurationError
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,14 @@ class AdapterRegistry:
             if provider_type in cls._adapters:
                 logger.warning(f"Provider {provider_type} is already registered. Overwriting.")
             cls._adapters[provider_type] = adapter_class
+            
+            # Populate ProviderCapabilityRegistry
+            if hasattr(instance, "get_provider_capabilities"):
+                try:
+                    ProviderCapabilityRegistry.register(instance.get_provider_capabilities())
+                except Exception as cap_err:
+                    logger.warning(f"Failed to register capabilities for {provider_type}: {str(cap_err)}")
+            
             logger.info(f"Registered integration adapter for {provider_type}")
         except Exception as e:
             raise ProviderConfigurationError(f"Failed to register adapter {adapter_class.__name__}: {str(e)}")

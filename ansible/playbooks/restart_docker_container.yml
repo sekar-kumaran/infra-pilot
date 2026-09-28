@@ -1,0 +1,14 @@
+---
+- name: Restart Docker Container
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Restart container
+      # Using command since community.docker might not be installed in all base ansible images
+      # But in production this should use community.docker.docker_container module
+      ansible.builtin.command: "docker restart {{ container_name }}"
+      register: restart_out
+      
+    - name: Output
+      ansible.builtin.debug:
+        var: restart_out.stdout

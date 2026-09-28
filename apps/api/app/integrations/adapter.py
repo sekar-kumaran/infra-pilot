@@ -3,6 +3,7 @@ from typing import Dict, Any, List
 
 from app.models.enums import ProviderType
 from app.integrations.models import IntegrationCapability, DiscoveredResource
+from app.integrations.capabilities import ProviderCapabilityRegistryEntry
 
 class ProviderAdapter(ABC):
     """
@@ -17,7 +18,12 @@ class ProviderAdapter(ABC):
         
     @abstractmethod
     def get_capabilities(self) -> IntegrationCapability:
-        """Return the capabilities supported by this provider."""
+        """Return the legacy capabilities supported by this provider."""
+        pass
+
+    @abstractmethod
+    def get_provider_capabilities(self) -> ProviderCapabilityRegistryEntry:
+        """Return the full capability registry entry for this provider."""
         pass
 
     @abstractmethod

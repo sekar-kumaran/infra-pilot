@@ -4,6 +4,7 @@ import logging
 from app.models.enums import ProviderType, ResourceType, ResourceStatus
 from app.integrations.adapter import ProviderAdapter
 from app.integrations.models import IntegrationCapability, DiscoveredResource
+from app.integrations.capabilities import ProviderCapabilityRegistryEntry
 from app.integrations.exceptions import ProviderValidationError
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,18 @@ class TestProviderAdapter(ProviderAdapter):
             resource_discovery=True,
             resource_read=True,
             health_check=True
+        )
+
+    def get_provider_capabilities(self) -> ProviderCapabilityRegistryEntry:
+        return ProviderCapabilityRegistryEntry(
+            provider=ProviderType.TEST_PROVIDER,
+            display_name="Test Provider",
+            version="1.0",
+            capabilities=["health_check", "resource_discovery", "resource_read", "alerts_read", "automation"],
+            resources=[ResourceType.HOST, ResourceType.VM, ResourceType.SERVICE],
+            read_operations=["test_collect_information"],
+            mutation_operations=["test_action_success", "test_provider_mutation"],
+            authentication_requirements=["test_key"]
         )
 
     def validate_connection(self, config: Dict[str, Any], secrets: Dict[str, Any]) -> bool:
