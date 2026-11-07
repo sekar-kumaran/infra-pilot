@@ -177,7 +177,7 @@ def _get_docker_client_for_resource(resource, db):
     """Find the Docker integration for a resource and return a ready client."""
     from app.models.integration import Integration
     from app.integrations.providers.docker.adapter import DockerIntegrationAdapter
-    from app.services.integration_crypto import decrypt_secrets
+    from app.core.encryption import decrypt_secret_payload
 
     integration = db.query(Integration).filter(
         Integration.provider == "docker",
@@ -187,7 +187,7 @@ def _get_docker_client_for_resource(resource, db):
         raise HTTPException(status_code=404, detail="No healthy Docker integration found")
 
     adapter = DockerIntegrationAdapter()
-    secrets = decrypt_secrets(integration.encrypted_secrets or {})
+    secrets = decrypt_secret_payload(integration.secret_payload) if integration.secret_payload else {}
     return adapter._get_client(integration.configuration, secrets)
 
 

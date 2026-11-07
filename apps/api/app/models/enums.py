@@ -90,6 +90,9 @@ class ProviderType(str, Enum):
     ANSIBLE = "ansible"
     PUPPET = "puppet"
     AWS = "aws"
+    JENKINS = "jenkins"
+    GITHUB_COPILOT = "github_copilot"
+    CUSTOM_TOOL = "custom_tool"
     TEST_PROVIDER = "test_provider"
 
 class IntegrationStatus(str, Enum):

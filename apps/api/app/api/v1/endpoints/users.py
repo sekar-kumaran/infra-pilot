@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Dict, Any
 
@@ -8,7 +8,6 @@ from app.models.user import User
 from app.schemas.auth import UserCreate
 from app.services.auth import register_user, AuthException
 from app.services.rbac import get_user_roles
-from fastapi import HTTPException
 
 router = APIRouter()
 
@@ -41,19 +40,20 @@ def list_users(
 ):
     users = db.query(User).offset(skip).limit(limit).all()
     total = db.query(User).count()
-    
+    items = []
+    for user in users:
+        user_roles = get_user_roles(db, user.id)
+        role_display = user_roles[0] if user_roles else "VIEWER"
+        items.append({
+            "id": str(user.id),
+            "email": user.email,
+            "name": getattr(user, 'name', None) or user.email.split('@')[0],
+            "role": role_display,
+            "status": "Active" if user.is_active else "Inactive",
+            "lastActive": user.updated_at.isoformat() if user.updated_at else "Just now"
+        })
     return {
-        "items": [
-            {
-                "id": str(user.id),
-                "email": user.email,
-                "name": getattr(user, 'name', None) or user.email.split('@')[0],
-                "role": "Admin",  # Stubbed for now
-                "status": "Active",
-                "lastActive": "Just now"
-            }
-            for user in users
-        ],
+        "items": items,
         "total": total,
         "page": (skip // limit) + 1,
         "size": limit

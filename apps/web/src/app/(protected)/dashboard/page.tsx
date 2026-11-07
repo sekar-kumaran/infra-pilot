@@ -4,8 +4,7 @@ import useSWR from 'swr';
 import { metricsApi } from '@/lib/api/metrics';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Activity, AlertTriangle, PlaySquare, CheckCircle, XCircle } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Activity, AlertTriangle, PlaySquare, CheckCircle, XCircle, BellRing } from 'lucide-react';
 
 export default function DashboardPage() {
   const { data: metrics, error, isLoading } = useSWR('/system/metrics', metricsApi.getSummary, { refreshInterval: 30000 });
@@ -15,7 +14,7 @@ export default function DashboardPage() {
     <div className="p-8">
       <div className="bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded-md">
         <h3 className="font-bold">Unable to load metrics</h3>
-        <p className="font-mono text-sm mt-1">API: /api/v1/system/metrics</p>
+        <p className="font-mono text-sm mt-1">API: /api/v1/system/metrics-summary</p>
         <p className="text-sm mt-1">Reason: {error.message}</p>
         <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>Retry</Button>
       </div>
@@ -57,13 +56,3 @@ export default function DashboardPage() {
   );
 }
 
-function BellRing(props: any) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-      <path d="M4 2C2.8 3.7 2 5.7 2 8" />
-      <path d="M22 8c0-2.3-.8-4.3-2-6" />
-    </svg>
-  );
-}

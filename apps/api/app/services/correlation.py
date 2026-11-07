@@ -62,12 +62,13 @@ class CorrelationService:
         # return adapter.normalize(raw_event)
         
         # Simple test provider normalization
-        payload = raw_event.payload
-        alert_type = payload.get("alert_type", "GENERIC_ALERT")
-        severity = payload.get("severity", Severity.WARNING.value)
-        title = payload.get("title", f"Alert from {raw_event.provider}")
-        description = payload.get("description", "")
+        payload = raw_event.payload or {}
         labels = payload.get("labels", {})
+        annotations = payload.get("annotations", {})
+        alert_type = payload.get("alert_type") or labels.get("alertname") or "GENERIC_ALERT"
+        severity = payload.get("severity") or labels.get("severity", Severity.WARNING.value)
+        title = payload.get("title") or annotations.get("summary") or labels.get("alertname") or f"Alert from {raw_event.provider}"
+        description = payload.get("description") or annotations.get("description", "")
         
         fingerprint = self._generate_fingerprint(
             provider=raw_event.provider,

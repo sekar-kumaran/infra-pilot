@@ -1,6 +1,6 @@
 from typing import Dict, Any, Tuple
 import time
-from .base import AutomationExecutor
+from app.adapters.automation.base import AutomationExecutor
 
 class TestAutomationExecutor(AutomationExecutor):
     """

@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "infrapilot"
+version = "2.2.0"
+description = "InfraPilot — Enterprise DevOps & SRE Control Plane Package, Python SDK, FastAPI Server & CLI"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "click>=8.1.0",
+    "rich>=13.0.0",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.22.0",
+    "httpx>=0.24.0",
+]
+
+[project.scripts]
+infrapilot = "infrapilot.cli:cli"

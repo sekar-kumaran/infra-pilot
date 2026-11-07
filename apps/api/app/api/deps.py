@@ -7,6 +7,8 @@ from uuid import UUID
 from app.core.config import settings
 from app.database.session import get_db
 from app.models.user import User
+from app.services.rbac import get_user_permissions
+from app.services.audit import log_event
 
 security = HTTPBearer()
 
@@ -39,7 +41,6 @@ def get_current_user(
             detail="Inactive user"
         )
         
-        
     return user
 
 def require_permission(required_permission: str):
@@ -47,12 +48,11 @@ def require_permission(required_permission: str):
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
     ) -> User:
-        from app.services.rbac import get_user_permissions
-        from app.services.audit import log_event
-        from app.database.session import get_session_factory
-        
+        if getattr(current_user, "is_superuser", False):
+            return current_user
+            
         permissions = get_user_permissions(db, current_user.id)
-        if required_permission not in permissions:
+        if required_permission not in permissions and "*" not in permissions:
             log_event(
                 db=db,
                 action="AUTHORIZATION_DENIED",

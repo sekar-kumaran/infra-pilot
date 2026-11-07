@@ -1,0 +1,3665 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>InfraPilot — Unified DevOps &amp; SRE Control Plane v2.4</title>
+  <style>
+    /* ==========================================================================
+       1. THEME VARIABLES (DARK MODE & LIGHT MODE)
+       ========================================================================== */
+    :root[data-theme="dark"] {
+      --bg-app: #0b0f19;
+      --bg-sidebar: #111827;
+      --bg-card: #151e30;
+      --bg-card-hover: #1b273d;
+      --bg-elevated: #1e293b;
+      --bg-input: #0f172a;
+      --bg-terminal: #070b14;
+      --border: #24324a;
+      --border-strong: #334155;
+      --text-main: #f8fafc;
+      --text-secondary: #cbd5e1;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --primary-soft: rgba(59, 130, 246, 0.15);
+      --accent: #06b6d4;
+      --accent-soft: rgba(6, 182, 212, 0.15);
+      --success: #10b981;
+      --success-soft: rgba(16, 185, 129, 0.15);
+      --warning: #f59e0b;
+      --warning-soft: rgba(245, 158, 11, 0.16);
+      --danger: #ef4444;
+      --danger-soft: rgba(239, 68, 68, 0.16);
+      --purple: #8b5cf6;
+      --purple-soft: rgba(139, 92, 246, 0.16);
+      --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.28);
+      --shadow-hover: 0 8px 28px rgba(0, 0, 0, 0.4);
+    }
+
+    :root[data-theme="light"] {
+      --bg-app: #f1f5f9;
+      --bg-sidebar: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f8fafc;
+      --bg-elevated: #f1f5f9;
+      --bg-input: #ffffff;
+      --bg-terminal: #0f172a;
+      --border: #e2e8f0;
+      --border-strong: #cbd5e1;
+      --text-main: #0f172a;
+      --text-secondary: #334155;
+      --text-muted: #64748b;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-soft: rgba(37, 99, 235, 0.1);
+      --accent: #0891b2;
+      --accent-soft: rgba(8, 145, 178, 0.1);
+      --success: #059669;
+      --success-soft: rgba(5, 150, 105, 0.12);
+      --warning: #d97706;
+      --warning-soft: rgba(217, 119, 6, 0.12);
+      --danger: #dc2626;
+      --danger-soft: rgba(220, 38, 38, 0.12);
+      --purple: #7c3aed;
+      --purple-soft: rgba(124, 58, 237, 0.12);
+      --shadow-card: 0 2px 10px rgba(15, 23, 42, 0.06);
+      --shadow-hover: 0 10px 24px rgba(15, 23, 42, 0.11);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+      background: var(--bg-app);
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      transition: background-color 0.25s ease, color 0.25s ease;
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    }
+
+    /* ==========================================================================
+       2. ANIMATIONS & MICRO-INTERACTIONS
+       ========================================================================== */
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulseRingGreen {
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+      70% { box-shadow: 0 0 0 7px rgba(16, 185, 129, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    @keyframes pulseRingRed {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.65); }
+      70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    .animate-view {
+      animation: fadeSlideUp 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* ==========================================================================
+       3. APP SHELL & RESPONSIVE TABLET/MOBILE LAYOUT
+       ========================================================================== */
+    .layout-root {
+      display: grid;
+      grid-template-columns: 264px 1fr;
+      grid-template-rows: 64px 1fr;
+      grid-template-areas:
+        "sidebar header"
+        "sidebar main";
+      height: 100vh;
+      width: 100vw;
+    }
+
+    .mobile-menu-btn {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      border: 1px solid var(--border-strong);
+      background: var(--bg-elevated);
+      color: var(--text-main);
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .sidebar-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      z-index: 35;
+    }
+
+    /* Sidebar Navigation */
+    .sidebar {
+      grid-area: sidebar;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 14px 12px;
+      z-index: 40;
+      transition: transform 0.25s ease, background-color 0.25s ease, border-color 0.25s ease;
+      overflow-y: auto;
+    }
+
+    .brand-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 8px 14px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 8px;
+    }
+
+    .brand-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, #2563eb, #06b6d4);
+      color: #fff;
+      font-weight: 800;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+    }
+
+    .brand-title {
+      font-weight: 800;
+      font-size: 16.5px;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .nav-section-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      padding: 10px 10px 4px;
+    }
+
+    .nav-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 8.5px 11px;
+      margin-bottom: 3px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.16s ease;
+    }
+
+    .nav-btn:hover {
+      background: var(--bg-elevated);
+      color: var(--text-main);
+      transform: translateX(2px);
+    }
+
+    .nav-btn.active {
+      background: var(--primary-soft);
+      color: var(--primary);
+      border-color: rgba(59, 130, 246, 0.3);
+      font-weight: 600;
+    }
+
+    .nav-btn-left {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .nav-pill {
+      font-size: 10.5px;
+      font-weight: 600;
+      padding: 1.5px 7px;
+      border-radius: 999px;
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+    }
+
+    .nav-pill.danger {
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+
+    .nav-pill.super {
+      background: var(--purple-soft);
+      color: var(--purple);
+    }
+
+    /* Connected App Widget in Sidebar Footer (With Green/Red Status Dot!) */
+    .connected-app-widget {
+      margin-top: 10px;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      font-size: 12px;
+    }
+
+    .status-dot-green {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #10b981;
+      display: inline-block;
+      animation: pulseRingGreen 2s infinite;
+    }
+
+    .status-dot-red {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #ef4444;
+      display: inline-block;
+      animation: pulseRingRed 1.5s infinite;
+    }
+
+    /* Top Header */
+    .top-header {
+      grid-area: header;
+      background: var(--bg-sidebar);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      gap: 12px;
+      overflow-x: auto;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      white-space: nowrap;
+    }
+
+    .page-heading {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .cluster-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 11px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 600;
+      background: var(--success-soft);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .cluster-status-pill.degraded {
+      background: var(--danger-soft);
+      color: var(--danger);
+      border-color: rgba(239, 68, 68, 0.35);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: nowrap;
+    }
+
+    /* Main Content Scroll Area */
+    .main-scroll {
+      grid-area: main;
+      overflow-y: auto;
+      padding: 20px 24px 100px;
+    }
+
+    /* ==========================================================================
+       4. CARDS, GRIDS, RESPONSIVE FORMS, BUTTONS & TABLES
+       ========================================================================== */
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      align-items: end;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: var(--shadow-card);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+    .card:hover {
+      box-shadow: var(--shadow-hover);
+    }
+
+    .card.interactive:hover {
+      transform: translateY(-2px);
+      border-color: var(--primary);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .card-subtitle {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .stat-value {
+      font-size: 25px;
+      font-weight: 800;
+      color: var(--text-main);
+      margin: 6px 0 4px;
+      letter-spacing: -0.02em;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 13px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 12.5px;
+      font-weight: 600;
+      border: 1px solid var(--border-strong);
+      background: var(--bg-elevated);
+      color: var(--text-main);
+      cursor: pointer;
+      transition: all 0.16s ease;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      border-color: var(--primary);
+    }
+
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 12px;
+      border-radius: 6px;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #ffffff;
+    }
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      border-color: var(--primary-hover);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+    }
+
+    .btn-success {
+      background: var(--success-soft);
+      border-color: rgba(16, 185, 129, 0.4);
+      color: var(--success);
+    }
+    .btn-success:hover {
+      background: var(--success);
+      color: #ffffff;
+    }
+
+    .btn-warning {
+      background: var(--warning-soft);
+      border-color: rgba(245, 158, 11, 0.4);
+      color: var(--warning);
+    }
+    .btn-warning:hover {
+      background: var(--warning);
+      color: #ffffff;
+    }
+
+    .btn-danger {
+      background: var(--danger-soft);
+      border-color: rgba(239, 68, 68, 0.4);
+      color: var(--danger);
+    }
+    .btn-danger:hover {
+      background: var(--danger);
+      color: #ffffff;
+    }
+
+    .btn-purple {
+      background: var(--purple-soft);
+      border-color: rgba(139, 92, 246, 0.4);
+      color: var(--purple);
+    }
+    .btn-purple:hover {
+      background: var(--purple);
+      color: #ffffff;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .badge-success { background: var(--success-soft); color: var(--success); }
+    .badge-warning { background: var(--warning-soft); color: var(--warning); }
+    .badge-danger  { background: var(--danger-soft);  color: var(--danger); }
+    .badge-info    { background: var(--primary-soft); color: var(--primary); }
+    .badge-purple  { background: var(--purple-soft);  color: var(--purple); }
+
+    /* Inputs */
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+    }
+
+    .input, .select {
+      width: 100%;
+      padding: 8.5px 11px;
+      border-radius: 8px;
+      border: 1px solid var(--border-strong);
+      background: var(--bg-input);
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .input:focus, .select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-soft);
+    }
+
+    /* Tables */
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table.clean-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    table.clean-table th {
+      padding: 10px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-elevated);
+      white-space: nowrap;
+    }
+
+    table.clean-table td {
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: middle;
+    }
+
+    table.clean-table tr:hover td {
+      background: var(--bg-card-hover);
+    }
+
+    /* Progress Bars */
+    .progress-track {
+      width: 100%;
+      height: 7px;
+      background: var(--bg-elevated);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 5px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      transition: width 0.35s ease;
+    }
+
+    /* Toggle Switch */
+    .switch-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 10px;
+      background: var(--bg-card-hover);
+    }
+
+    .toggle-btn {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      border-radius: 999px;
+      background: var(--border-strong);
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .toggle-btn.on {
+      background: var(--success);
+    }
+
+    .toggle-btn::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 0.2s ease;
+    }
+
+    .toggle-btn.on::after {
+      transform: translateX(20px);
+    }
+
+    /* Permission Checkboxes */
+    .perm-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 9px;
+      margin: 2px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 600;
+      border: 1px solid var(--border-strong);
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .perm-chip.granted {
+      background: var(--success-soft);
+      border-color: rgba(16, 185, 129, 0.45);
+      color: var(--success);
+    }
+
+    /* ==========================================================================
+       5. AUTO-OPENING BOTTOM CLI & EXECUTION LOGS DRAWER
+       ========================================================================== */
+    .console-drawer {
+      position: fixed;
+      left: 264px;
+      right: 0;
+      bottom: 0;
+      background: var(--bg-terminal);
+      color: #f8fafc;
+      border-top: 2px solid var(--primary);
+      z-index: 50;
+      box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.45);
+      transition: height 0.28s cubic-bezier(0.16, 1, 0.3, 1), left 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      height: 44px;
+    }
+
+    .console-drawer.open {
+      height: 340px;
+    }
+
+    .drawer-bar {
+      height: 44px;
+      min-height: 44px;
+      padding: 0 16px;
+      background: #0f172a;
+      border-bottom: 1px solid #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      cursor: pointer;
+      user-select: none;
+      overflow-x: auto;
+    }
+
+    .drawer-tabs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .drawer-tab {
+      padding: 5px 11px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: #94a3b8;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .drawer-tab.active {
+      background: rgba(59, 130, 246, 0.22);
+      color: #60a5fa;
+      border-color: rgba(59, 130, 246, 0.45);
+    }
+
+    .drawer-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding: 12px 16px;
+    }
+
+    .terminal-output {
+      flex: 1;
+      overflow-y: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #e2e8f0;
+      white-space: pre-wrap;
+      margin-bottom: 10px;
+    }
+
+    .terminal-input-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #111827;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 6px 12px;
+    }
+
+    .terminal-prompt {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px;
+      color: #22d3ee;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .terminal-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #ffffff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      outline: none;
+    }
+
+    /* Toast Notification */
+    #toast-stack {
+      position: fixed;
+      top: 72px;
+      right: 20px;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-width: 370px;
+    }
+
+    .toast {
+      background: var(--bg-card);
+      color: var(--text-main);
+      border: 1px solid var(--primary);
+      border-left: 4px solid var(--primary);
+      padding: 11px 15px;
+      border-radius: 10px;
+      box-shadow: var(--shadow-hover);
+      font-size: 12.5px;
+      font-weight: 500;
+      animation: fadeSlideUp 0.22s ease forwards;
+    }
+
+    /* ==========================================================================
+       6. TABLET & MOBILE RESPONSIVE BREAKPOINTS (Fixes All Mobile/Tab Flaws!)
+       ========================================================================== */
+    @media (max-width: 1024px) {
+      .layout-root {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "header"
+          "main";
+      }
+
+      .mobile-menu-btn {
+        display: inline-flex;
+      }
+
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 270px;
+        transform: translateX(-100%);
+        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+      }
+
+      .sidebar.mobile-open {
+        transform: translateX(0);
+      }
+
+      .sidebar-backdrop.mobile-open {
+        display: block;
+      }
+
+      .console-drawer {
+        left: 0;
+      }
+
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .main-scroll {
+        padding: 14px 14px 96px;
+      }
+
+      .top-header {
+        padding: 0 12px;
+      }
+
+      .cluster-status-pill {
+        display: none;
+      }
+
+      .grid-3, .grid-4, .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .console-drawer.open {
+        height: 62vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Backdrop for Tablet/Mobile Slide-Over Sidebar -->
+  <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="toggleMobileSidebar(false)"></div>
+
+  <div class="layout-root">
+    <!-- ========================================================================
+         LEFT SIDEBAR NAVIGATION
+         ======================================================================== -->
+    <aside id="app-sidebar" class="sidebar">
+      <div>
+        <div class="brand-box">
+          <div class="brand-left">
+            <div class="brand-icon">IP</div>
+            <div>
+              <div class="brand-title">InfraPilot</div>
+              <div class="brand-sub">DevOps Control Plane v2.4</div>
+            </div>
+          </div>
+          <button class="mobile-menu-btn" onclick="toggleMobileSidebar(false)" aria-label="Close Menu">✕</button>
+        </div>
+
+        <div class="nav-section-label">Core Control Plane</div>
+        <button class="nav-btn active" id="nav-overview" onclick="navigateTo('overview')">
+          <span class="nav-btn-left"><span>📊</span> <span>Dashboard Overview</span></span>
+        </button>
+        <button class="nav-btn" id="nav-workloads" onclick="navigateTo('workloads')">
+          <span class="nav-btn-left"><span>📦</span> <span>Workloads &amp; Containers</span></span>
+          <span class="nav-pill" id="pill-workloads">6</span>
+        </button>
+        <button class="nav-btn" id="nav-tools" onclick="navigateTo('tools')">
+          <span class="nav-btn-left"><span>🔌</span> <span>Tools &amp; Endpoints</span></span>
+          <span class="nav-pill" id="pill-tools">10</span>
+        </button>
+        <button class="nav-btn" id="nav-incidents" onclick="navigateTo('incidents')">
+          <span class="nav-btn-left"><span>🚨</span> <span>Incidents &amp; Alerts</span></span>
+          <span class="nav-pill" id="pill-incidents">1</span>
+        </button>
+
+        <div class="nav-section-label">Tool Control Centers</div>
+        <button class="nav-btn" id="nav-observability" onclick="navigateTo('observability')">
+          <span class="nav-btn-left"><span>📈</span> <span>Grafana &amp; Prometheus</span></span>
+          <span class="nav-pill">Live</span>
+        </button>
+        <button class="nav-btn" id="nav-terraform" onclick="navigateTo('terraform')">
+          <span class="nav-btn-left"><span>🏗️</span> <span>Terraform &amp; AWS IaC</span></span>
+          <span class="nav-pill">3 Wks</span>
+        </button>
+        <button class="nav-btn" id="nav-ansible" onclick="navigateTo('ansible')">
+          <span class="nav-btn-left"><span>⚡</span> <span>Ansible &amp; Automations</span></span>
+          <span class="nav-pill" id="pill-ansible">4</span>
+        </button>
+        <button class="nav-btn" id="nav-jenkins" onclick="navigateTo('jenkins')">
+          <span class="nav-btn-left"><span>🚀</span> <span>Jenkins Pipelines</span></span>
+          <span class="nav-pill" id="pill-jenkins">3</span>
+        </button>
+        <button class="nav-btn" id="nav-copilot" onclick="navigateTo('copilot')">
+          <span class="nav-btn-left"><span>🤖</span> <span>GitHub Copilot SRE</span></span>
+          <span class="nav-pill">AI</span>
+        </button>
+
+        <div class="nav-section-label">Access, Shell &amp; Docs</div>
+        <button class="nav-btn" id="nav-users" onclick="navigateTo('users')">
+          <span class="nav-btn-left"><span>🔐</span> <span>Users &amp; RBAC Access</span></span>
+          <span class="nav-pill super">Super Admin</span>
+        </button>
+        <button class="nav-btn" id="nav-console" onclick="navigateTo('console')">
+          <span class="nav-btn-left"><span>💻</span> <span>Logs &amp; CLI Terminal</span></span>
+          <span class="nav-pill">Shell</span>
+        </button>
+        <button class="nav-btn" id="nav-docs" onclick="navigateTo('docs')">
+          <span class="nav-btn-left"><span>📖</span> <span>CLI &amp; SDK Docs</span></span>
+          <span class="nav-pill">Ref</span>
+        </button>
+      </div>
+
+      <!-- Connected App Status Widget with Green/Red Dot -->
+      <div class="connected-app-widget">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <span style="font-weight:700;color:var(--text-main);">Connected App SDK</span>
+          <button class="btn btn-sm" style="padding:2px 7px;font-size:10.5px;" onclick="toggleDemoAppConnection()" id="demo-conn-toggle-btn">Disconnect</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <span id="sidebar-app-dot" class="status-dot-green"></span>
+          <span id="sidebar-app-status-text" style="font-weight:600;color:var(--success);">Connected (NexusPay :5055)</span>
+        </div>
+        <div class="mono" style="font-size:11px;color:var(--text-muted);">sdk: InfraPilotToolAgent v2.4</div>
+      </div>
+    </aside>
+
+    <!-- ========================================================================
+         TOP HEADER BAR (With Role Switcher, Quick Actions & Light/Dark Toggle)
+         ======================================================================== -->
+    <header class="top-header">
+      <div class="header-left">
+        <button class="mobile-menu-btn" onclick="toggleMobileSidebar(true)" aria-label="Open Navigation">☰</button>
+        <h1 class="page-heading" id="header-page-title">Dashboard Overview</h1>
+        <div id="header-cluster-badge" class="cluster-status-pill">
+          <span id="header-pulse-dot" class="status-dot-green"></span>
+          <span id="header-cluster-text">All 10 DevOps Tools Connected</span>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:11.5px;color:var(--text-muted);font-weight:600;">Role:</span>
+          <select id="role-select" class="select" style="width:170px;padding:5px 8px;font-size:12px;font-weight:600;" onchange="switchUserRole(this.value)" aria-label="Select Active User Role">
+            <option value="SUPER_ADMIN">👑 Super Admin (Full)</option>
+            <option value="ADMIN">🛡️ Admin (Ops &amp; Tools)</option>
+            <option value="DEVELOPER">👨‍💻 Developer (Scoped)</option>
+          </select>
+        </div>
+
+        <button class="btn btn-sm" onclick="navigateTo('observability')">📈 Grafana</button>
+        <button class="btn btn-sm" onclick="navigateTo('terraform')">🏗️ Terraform</button>
+        <button class="btn btn-sm" onclick="navigateTo('docs')">📖 CLI Docs</button>
+        <button class="btn btn-sm btn-danger" onclick="injectChaosFault('worker_pool_exhaustion')">Simulate Fault</button>
+        <button class="btn btn-sm btn-success" onclick="healAllSystems()">Auto-Heal</button>
+        <button class="btn btn-sm btn-primary" id="theme-toggle-btn" onclick="toggleThemeMode()">☀️ Light Mode</button>
+      </div>
+    </header>
+
+    <!-- ========================================================================
+         MAIN VIEWPORT
+         ======================================================================== -->
+    <main class="main-scroll" id="main-content"></main>
+  </div>
+
+  <!-- ==========================================================================
+       AUTO-OPENING BOTTOM CLI & EXECUTION LOGS DRAWER
+       ========================================================================== -->
+  <section id="console-drawer" class="console-drawer">
+    <div class="drawer-bar" onclick="toggleDrawer()">
+      <div class="drawer-tabs" onclick="event.stopPropagation();">
+        <span style="font-weight:700;font-size:12.5px;color:#fff;margin-right:6px;" onclick="toggleDrawer()">
+          ▲ Execution CLI &amp; Live Logs
+        </span>
+        <button class="drawer-tab active" id="dtab-shell" onclick="openDrawerTab('shell')">
+          &gt;_ Execution Output &amp; Shell (<span id="drawer-target-name">nexuspay-payment-worker-01</span>)
+        </button>
+        <button class="drawer-tab" id="dtab-logs" onclick="openDrawerTab('logs')">
+          📜 Live Tool &amp; Container Logs
+        </button>
+        <button class="drawer-tab" id="dtab-cli" onclick="openDrawerTab('cli')">
+          ⚡ InfraPilot CLI
+        </button>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:8px;" onclick="event.stopPropagation();">
+        <select id="drawer-target-select" class="select" style="padding:3px 8px;font-size:12px;width:220px;background:#1e293b;color:#fff;border-color:#334155;" onchange="selectTarget(this.value)" aria-label="Select Log or Shell Target">
+        </select>
+        <select id="drawer-shell-select" class="select" style="padding:3px 8px;font-size:12px;width:130px;background:#1e293b;color:#fff;border-color:#334155;" onchange="changeShellType(this.value)" aria-label="Select Shell Mode">
+          <option value="bash">bash (Linux)</option>
+          <option value="pwsh">PowerShell</option>
+          <option value="cmd">cmd.exe</option>
+          <option value="sh">sh (Alpine)</option>
+        </select>
+        <button class="btn btn-sm" style="background:#1e293b;color:#fff;border-color:#334155;" onclick="clearDrawerTerminal()">Clear</button>
+        <button class="btn btn-sm" style="background:#1e293b;color:#fff;border-color:#334155;" onclick="toggleDrawer()" id="drawer-toggle-label">Expand ▲</button>
+      </div>
+    </div>
+
+    <div class="drawer-content">
+      <div id="drawer-output" class="terminal-output"></div>
+      <div class="terminal-input-bar">
+        <span id="drawer-prompt" class="terminal-prompt">root@nexuspay-payment-worker-01:/app#</span>
+        <input
+          id="drawer-input"
+          type="text"
+          class="terminal-input"
+          placeholder="Type any container command (ps aux, env, netstat -tulnp, df -h, redis-cli FLUSHALL) or infrapilot CLI command..."
+          onkeydown="if(event.key==='Enter') runDrawerCommand()"
+        />
+        <button class="btn btn-sm btn-primary" onclick="runDrawerCommand()">Execute</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="toast-stack"></div>
+
+  <script>
+    // ============================================================================
+    // CENTRAL APPLICATION STATE
+    // ============================================================================
+    const STATE = {
+      theme: 'dark',
+      currentPage: 'overview',
+      currentRole: 'SUPER_ADMIN', // SUPER_ADMIN | ADMIN | DEVELOPER
+      drawerOpen: false,
+      drawerTab: 'shell',
+      selectedTargetId: 'res-nexus-worker',
+      shellType: 'bash',
+      logLevelFilter: 'ALL',
+      logSearchQuery: '',
+      incidentFilter: 'ALL',
+
+      demoApp: {
+        name: 'NexusPay Order & Payment Gateway',
+        connected: true,
+        version: 'v2.3.1',
+        status: 'HEALTHY',
+        endpoint: 'http://127.0.0.1:5055',
+        replicas: 3,
+        workerCpu: 18.2,
+        redisMemMb: 142.0,
+        errorRate: 0.0
+      },
+
+      workloads: [
+        { id: 'res-nexus-worker', name: 'nexuspay-payment-worker-01', role: 'Settlement Worker Container', provider: 'Docker', type: 'CONTAINER', image: 'ghcr.io/infrapilot/nexuspay-worker:v2.3.1', status: 'RUNNING', cpu: 18.2, memMb: 248, memLimitMb: 1024, replicas: '1/1', ports: '5055:5055' },
+        { id: 'res-nexus-gw', name: 'nexuspay-api-gateway', role: 'Ingress & Rate Limit Deployment', provider: 'Kubernetes', type: 'DEPLOYMENT', image: 'ghcr.io/infrapilot/nexuspay-gateway:v2.3.1', status: 'RUNNING', cpu: 22.4, memMb: 312, memLimitMb: 1024, replicas: '3/3', ports: '443:8080' },
+        { id: 'res-nexus-redis', name: 'nexuspay-redis-cache', role: 'Idempotency & Session Store', provider: 'Docker', type: 'CONTAINER', image: 'redis:7.2.4-alpine', status: 'RUNNING', cpu: 9.8, memMb: 142, memLimitMb: 512, replicas: '1/1', ports: '6379:6379' },
+        { id: 'res-weather-api', name: 'weather-telemetry-service', role: 'Node.js Prometheus Exporter', provider: 'Docker', type: 'CONTAINER', image: 'ghcr.io/infrapilot/weather-api:v1.8.0', status: 'RUNNING', cpu: 12.1, memMb: 164, memLimitMb: 512, replicas: '2/2', ports: '4000:4000' },
+        { id: 'res-aws-rds', name: 'prod-orders-postgres-primary', role: 'Multi-AZ Transactional Database', provider: 'AWS', type: 'RDS_POSTGRES', image: 'postgres:15.6-rds', status: 'RUNNING', cpu: 28.5, memMb: 6420, memLimitMb: 16384, replicas: 'Multi-AZ', ports: '5432:5432' },
+        { id: 'res-aws-ec2', name: 'prod-worker-asg-node-01', role: 'Compute Auto-Scaling Host', provider: 'AWS', type: 'EC2_NODE', image: 'ubuntu-22.04-eks', status: 'RUNNING', cpu: 31.0, memMb: 3890, memLimitMb: 8192, replicas: 'ASG 3/6', ports: '22, 9100' }
+      ],
+
+      tools: [
+        { id: 'int-docker-01', name: 'Production Docker Engine', provider: 'Docker', controlPage: 'workloads', endpoint: 'unix:///var/run/docker.sock', status: 'CONNECTED', latency: '2.1 ms', description: 'Container lifecycle, live stdout/stderr logs & interactive bash/sh exec' },
+        { id: 'int-k8s-01', name: 'k3s Production Cluster', provider: 'Kubernetes', controlPage: 'workloads', endpoint: 'https://10.43.0.1:6443', status: 'CONNECTED', latency: '6.4 ms', description: 'Pod logs, kubectl exec, deployment scaling & rollout orchestration' },
+        { id: 'int-grafana-01', name: 'Grafana Enterprise Dashboards', provider: 'Grafana', controlPage: 'observability', endpoint: 'http://grafana.internal:3000', status: 'CONNECTED', latency: '5.2 ms', description: 'Live golden-signal dashboards, SLO panels, alert annotations & datasource sync' },
+        { id: 'int-prom-01', name: 'Prometheus Alertmanager & TSDB', provider: 'Prometheus', controlPage: 'observability', endpoint: 'http://prometheus.internal:9090', status: 'CONNECTED', latency: '4.3 ms', description: 'Real-time PromQL query engine, target scraping & alert rule evaluation' },
+        { id: 'int-tf-01', name: 'Terraform Cloud IaC', provider: 'Terraform', controlPage: 'terraform', endpoint: 'https://app.terraform.io/api/v2', status: 'CONNECTED', latency: '38.5 ms', description: 'Infrastructure state drift detection, speculative plan & automated apply' },
+        { id: 'int-aws-01', name: 'AWS Cloud Production (us-east-1)', provider: 'AWS', controlPage: 'terraform', endpoint: 'https://ec2.us-east-1.amazonaws.com', status: 'CONNECTED', latency: '29.2 ms', description: 'EC2 Auto-Scaling Groups, RDS Multi-AZ failover & CloudWatch logs' },
+        { id: 'int-ansible-01', name: 'Ansible Automation Runner', provider: 'Ansible', controlPage: 'ansible', endpoint: 'http://ansible-runner.internal:5001', status: 'CONNECTED', latency: '8.9 ms', description: 'Execute YAML playbooks, fleet patching & configuration management' },
+        { id: 'int-jenkins-01', name: 'Jenkins CI/CD Controller', provider: 'Jenkins', controlPage: 'jenkins', endpoint: 'http://jenkins.internal:8080', status: 'CONNECTED', latency: '11.8 ms', description: 'Create pipelines, trigger parameterized builds & stream console output' },
+        { id: 'int-copilot-01', name: 'GitHub Copilot Enterprise', provider: 'GitHub Copilot', controlPage: 'copilot', endpoint: 'https://api.github.com/orgs/infrapilot-eng/copilot', status: 'CONNECTED', latency: '42.0 ms', description: 'AI SRE root-cause log analyzer, shell command generator & seat governance' },
+        { id: 'int-nexus-sdk', name: 'NexusPay App SDK Agent', provider: 'Custom SDK', controlPage: 'overview', endpoint: 'http://127.0.0.1:5055', status: 'CONNECTED', latency: '1.8 ms', description: 'Live Python SDK integration exposing app health, chaos & self-healing hooks' }
+      ],
+
+      grafanaDashboards: [
+        { uid: 'graf-nexus-golden', title: 'NexusPay Golden Signals (Latency, Traffic, Errors)', folder: 'Production Fintech', url: 'http://grafana.internal:3000/d/graf-nexus-golden', rps: '1,840 req/s', p99: '6.2 ms', errRate: '0.00%', status: 'HEALTHY' },
+        { uid: 'graf-k8s-cluster', title: 'Kubernetes Cluster & Pod SLO Overview', folder: 'Platform Infrastructure', url: 'http://grafana.internal:3000/d/graf-k8s-cluster', rps: '24 Pods Ready', p99: 'CPU 24.8%', errRate: '0 Restarts', status: 'HEALTHY' },
+        { uid: 'graf-docker-nodes', title: 'Docker Engine & Node Exporter Full Telemetry', folder: 'Host Runtime', url: 'http://grafana.internal:3000/d/graf-docker-nodes', rps: '6 Containers', p99: 'Load 1.12', errRate: 'Disk 35%', status: 'HEALTHY' },
+        { uid: 'graf-data-stores', title: 'AWS RDS PostgreSQL & Redis Cache Performance', folder: 'Stateful Tier', url: 'http://grafana.internal:3000/d/graf-data-stores', rps: '3,410 IOPS', p99: 'Lag 0.4 ms', errRate: 'Hit 99.2%', status: 'HEALTHY' }
+      ],
+      selectedGrafanaUid: 'graf-nexus-golden',
+
+      promQueryLast: {
+        expr: 'rate(nexuspay_requests_total[5m])',
+        results: [
+          '{instance="10.42.1.18:5055", job="nexuspay-worker", status="200"} => 614.2 req/s',
+          '{instance="10.42.1.14:8080", job="nexuspay-gateway", status="200"} => 1842.6 req/s',
+          '{instance="10.42.1.22:4000", job="weather-telemetry", status="200"} => 128.4 req/s'
+        ]
+      },
+
+      terraformWorkspaces: [
+        { id: 'ws-aws-prod', name: 'prod-aws-us-east-1', repo: 'infrapilot-eng/terraform-aws-prod', version: 'v1.8.4', resources: 48, drift: 'CLEAN (0 drifted)', locked: false, lastRun: 'Applied 2h ago' },
+        { id: 'ws-k8s-core', name: 'prod-k8s-eks-addons', repo: 'infrapilot-eng/terraform-k8s-core', version: 'v1.8.4', resources: 31, drift: 'CLEAN (0 drifted)', locked: false, lastRun: 'Applied 1d ago' },
+        { id: 'ws-payments-db', name: 'prod-rds-redis-stateful', repo: 'infrapilot-eng/terraform-stateful', version: 'v1.8.4', resources: 19, drift: 'CLEAN (0 drifted)', locked: true, lastRun: 'Locked by Super Admin' }
+      ],
+
+      rbacUsers: [
+        {
+          id: 'usr-01',
+          name: 'Arjun Mehta (You)',
+          email: 'superadmin@infrapilot.io',
+          role: 'SUPER_ADMIN',
+          title: 'Principal Platform Architect',
+          permissions: ['docker_exec', 'k8s_scale', 'jenkins_admin', 'ansible_run', 'terraform_apply', 'grafana_edit', 'prod_approvals', 'rbac_manage']
+        },
+        {
+          id: 'usr-02',
+          name: 'Priya Sharma',
+          email: 'admin-ops@infrapilot.io',
+          role: 'ADMIN',
+          title: 'Lead DevOps Engineer',
+          permissions: ['docker_exec', 'k8s_scale', 'jenkins_admin', 'ansible_run', 'terraform_apply', 'grafana_edit', 'prod_approvals']
+        },
+        {
+          id: 'usr-03',
+          name: 'Rahul Verma',
+          email: 'dev-rahul@infrapilot.io',
+          role: 'DEVELOPER',
+          title: 'Senior Backend Developer',
+          permissions: ['docker_exec', 'jenkins_admin', 'grafana_edit']
+        },
+        {
+          id: 'usr-04',
+          name: 'Neha Kapoor',
+          email: 'dev-neha@infrapilot.io',
+          role: 'DEVELOPER',
+          title: 'Microservices Engineer',
+          permissions: ['k8s_scale', 'grafana_edit']
+        }
+      ],
+
+      incidents: [
+        {
+          id: 'INC-1042',
+          title: 'Elevated GC Pause on NexusPay Settlement Worker',
+          severity: 'WARNING',
+          status: 'ACKNOWLEDGED',
+          targetId: 'res-nexus-worker',
+          service: 'nexuspay-payment-worker-01',
+          summary: 'Gen2 garbage collection pause reached 14.2ms under batch settlement load.',
+          createdAt: '10 mins ago'
+        }
+      ],
+
+      automations: [
+        { id: 'pb-ansible-nginx', name: 'Ansible: Patch Nginx & Reload TLS Certificates', provider: 'Ansible', target: 'prod-web-fleet', playbookFile: 'playbooks/nginx_tls_reload.yml', risk: 'LOW', approvalRequired: false, lastRun: 'Succeeded 14m ago', steps: ['Gather Facts', 'Update Nginx Packages', 'Validate nginx -t', 'Reload systemd service'] },
+        { id: 'pb-restart-workers', name: 'SDK: Restart NexusPay Worker Pool & Verify Health', provider: 'Custom SDK', target: 'res-nexus-worker', playbookFile: 'sdk://app_restart_workers', risk: 'LOW', approvalRequired: false, lastRun: 'Succeeded 8m ago', steps: ['Inspect Worker Threads', 'Graceful Worker Restart', 'Verify HTTP 200 /health'] },
+        { id: 'pb-flush-redis', name: 'Docker/Redis: Flush Stale Session Keys & Reset Pool', provider: 'Docker', target: 'res-nexus-redis', playbookFile: 'redis-cli FLUSHALL', risk: 'LOW', approvalRequired: false, lastRun: 'Succeeded 1h ago', steps: ['Scan session:stale:*', 'Purge Expired Keys', 'Verify Memory < 150MB'] },
+        { id: 'pb-rollback-canary', name: 'Kubernetes: Emergency Production Canary Rollback', provider: 'Kubernetes', target: 'res-nexus-gw', playbookFile: 'kubectl rollout undo deployment/nexuspay-api-gateway', risk: 'HIGH', approvalRequired: true, lastRun: 'Requires Approval', steps: ['Drain Canary Pods', 'Rollback Image to v2.3.1', 'Verify Zero 5xx Errors'] }
+      ],
+
+      approvals: [],
+
+      jenkinsPipelines: [
+        {
+          id: 'pipe-nexus-release',
+          name: 'nexuspay-prod-release',
+          repo: 'https://github.com/infrapilot-eng/nexuspay.git',
+          branch: 'main',
+          lastBuild: 420,
+          status: 'SUCCESS',
+          duration: '2m 14s',
+          stages: [
+            { name: 'Checkout SCM', status: 'SUCCESS', time: '4s' },
+            { name: 'Pytest Suite', status: 'SUCCESS', time: '38s' },
+            { name: 'Docker Buildx', status: 'SUCCESS', time: '52s' },
+            { name: 'Trivy CVE Scan', status: 'SUCCESS', time: '19s' },
+            { name: 'K8s Rollout', status: 'SUCCESS', time: '21s' }
+          ],
+          logs: [
+            '[Jenkins] Started by superadmin@infrapilot.io via InfraPilot Control Plane',
+            '[Stage 1/5] Checkout SCM: git checkout main (commit a94f81c)',
+            '[Stage 2/5] Pytest Suite: 54 passed in 3.82s',
+            '[Stage 3/5] Docker Buildx: pushed ghcr.io/infrapilot/nexuspay:v2.3.1',
+            '[Stage 4/5] Trivy CVE Scan: 0 CRITICAL, 0 HIGH vulnerabilities',
+            '[Stage 5/5] K8s Rollout: deployment/nexuspay-api-gateway rolled out (3/3 ready)',
+            'Finished: SUCCESS'
+          ]
+        },
+        {
+          id: 'pipe-cp-core',
+          name: 'infrapilot-control-plane-ci',
+          repo: 'https://github.com/infrapilot-eng/infrapilot.git',
+          branch: 'main',
+          lastBuild: 204,
+          status: 'SUCCESS',
+          duration: '1m 46s',
+          stages: [
+            { name: 'Checkout SCM', status: 'SUCCESS', time: '3s' },
+            { name: 'FastAPI & CLI Tests', status: 'SUCCESS', time: '29s' },
+            { name: 'Build Package', status: 'SUCCESS', time: '41s' },
+            { name: 'Security Audit', status: 'SUCCESS', time: '15s' },
+            { name: 'Publish Release', status: 'SUCCESS', time: '18s' }
+          ],
+          logs: [
+            '[Jenkins] Started by GitHub push trigger (branch=main)',
+            '[Pipeline] All 9 End-to-End SDK & CLI stages verified',
+            'Finished: SUCCESS'
+          ]
+        },
+        {
+          id: 'pipe-ansible-fleet',
+          name: 'ansible-fleet-security-baseline',
+          repo: 'https://github.com/infrapilot-eng/ansible-playbooks.git',
+          branch: 'production',
+          lastBuild: 94,
+          status: 'SUCCESS',
+          duration: '1m 12s',
+          stages: [
+            { name: 'Checkout Playbooks', status: 'SUCCESS', time: '3s' },
+            { name: 'ansible-lint', status: 'SUCCESS', time: '14s' },
+            { name: 'Dry-Run (--check)', status: 'SUCCESS', time: '31s' },
+            { name: 'Apply Hardening', status: 'SUCCESS', time: '24s' }
+          ],
+          logs: [
+            '[Jenkins] Executed Ansible security baseline across 6 production nodes',
+            'Finished: SUCCESS'
+          ]
+        }
+      ],
+      selectedPipelineId: 'pipe-nexus-release',
+
+      copilot: {
+        org: 'infrapilot-eng',
+        activeSeats: 48,
+        totalSeats: 50,
+        acceptanceRate: '41.8%',
+        cliSuggestionsToday: 312,
+        policies: {
+          public_code_suggestions: true,
+          cli_in_prod_shells: true,
+          strict_secret_redaction: true,
+          automated_pr_security_review: true
+        },
+        lastAnalysis: {
+          target: 'res-nexus-worker (nexuspay-payment-worker-01)',
+          confidence: '97.8%',
+          diagnosis: 'Container logs show healthy settlement batch processing (p99=6.2ms). Minor 14.2ms GC pause observed; no thread deadlocks.',
+          recommendedCommand: 'ps aux && free -m'
+        },
+        generatedSnippet: `# Generated by GitHub Copilot SRE Assistant\n- name: Restart NexusPay Worker & Clear Cache\n  hosts: nexuspay_prod\n  become: true\n  tasks:\n    - name: Restart worker container\n      community.docker.docker_container:\n        name: nexuspay-payment-worker-01\n        state: started\n        restart: true`
+      },
+
+      // Rich Seeded Logs for EVERY Container AND EVERY Connected Tool!
+      logsByTarget: {
+        'res-nexus-worker': [
+          { ts: '10:38:01', level: 'INFO', src: 'gunicorn', msg: 'Booting worker with pid 42 (4 gevent workers listening on 0.0.0.0:5055)' },
+          { ts: '10:39:04', level: 'INFO', src: 'infrapilot.sdk', msg: 'Connected to InfraPilot Control Plane (registered 5 remediation hooks)' },
+          { ts: '10:40:15', level: 'INFO', src: 'settlement', msg: 'Settled batch #99412 (38 transactions, p99=6.2ms, 0 errors)' },
+          { ts: '10:42:19', level: 'WARN', src: 'gc.monitor', msg: 'Gen2 garbage collection pause 14.2ms (heap=248MB/1024MB)' }
+        ],
+        'res-nexus-gw': [
+          { ts: '10:38:00', level: 'INFO', src: 'envoy', msg: 'TLSv1.3 ingress bound on :443 -> routing to nexuspay-payment-worker-01:5055' },
+          { ts: '10:41:12', level: 'INFO', src: 'k8s.probe', msg: 'Readiness probe GET /health -> HTTP 200 OK (3/3 pods ready)' },
+          { ts: '10:43:05', level: 'INFO', src: 'ingress.rate', msg: 'Rate limiter nominal: 1,842 req/s (limit 5,000 req/s)' }
+        ],
+        'res-nexus-redis': [
+          { ts: '10:36:00', level: 'INFO', src: 'redis', msg: 'Redis 7.2.4 initialized (maxmemory=512mb, policy=allkeys-lru)' },
+          { ts: '10:42:01', level: 'INFO', src: 'redis.stats', msg: 'used_memory_human=142.00M, connected_clients=42, ops_per_sec=1840' }
+        ],
+        'res-weather-api': [
+          { ts: '10:37:11', level: 'INFO', src: 'express', msg: 'Weather Telemetry API listening on :4000 (Prometheus /metrics enabled)' },
+          { ts: '10:42:40', level: 'INFO', src: 'noaa.sync', msg: 'Synced 412 weather stations (cache hit ratio 94.8%)' }
+        ],
+        'res-aws-rds': [
+          { ts: '10:39:00', level: 'INFO', src: 'postgres', msg: 'Multi-AZ synchronous standby replay_lag=0.4ms, connections=42/200' },
+          { ts: '10:43:10', level: 'INFO', src: 'rds.ckpt', msg: 'Checkpoint complete: wrote 142 buffers (0.9%); 0 WAL files added' }
+        ],
+        'res-aws-ec2': [
+          { ts: '10:40:00', level: 'INFO', src: 'systemd', msg: 'containerd & kubelet active; host loadavg 1.12, disk 35% used' },
+          { ts: '10:43:22', level: 'INFO', src: 'node.exporter', msg: 'Scraped by Prometheus (cpu_user=24.1%, mem_avail=4.3GB)' }
+        ],
+        'int-docker-01': [
+          { ts: '10:35:10', level: 'INFO', src: 'dockerd', msg: 'Daemon socket unix:///var/run/docker.sock listening (API v1.45, 6 containers running)' },
+          { ts: '10:41:02', level: 'INFO', src: 'docker.events', msg: 'Healthcheck passed for container nexuspay-payment-worker-01 (c8f92e1a44b0)' },
+          { ts: '10:43:45', level: 'INFO', src: 'docker.stats', msg: 'Streamed cgroup v2 CPU/Memory telemetry to InfraPilot Control Plane' }
+        ],
+        'int-k8s-01': [
+          { ts: '10:36:14', level: 'INFO', src: 'kube-apiserver', msg: 'k3s control plane healthy at https://10.43.0.1:6443 (v1.29.4+k3s1)' },
+          { ts: '10:42:08', level: 'INFO', src: 'kube-controller', msg: 'Deployment nexuspay-prod/nexuspay-api-gateway replicas=3/3 ready' },
+          { ts: '10:44:01', level: 'INFO', src: 'kube-audit', msg: 'RBAC policy check passed for system:serviceaccount:infrapilot:controller' }
+        ],
+        'int-grafana-01': [
+          { ts: '10:37:00', level: 'INFO', src: 'grafana.server', msg: 'HTTP Server Listen=[::]:3000 (Grafana Enterprise v11.0, 4 dashboards synced)' },
+          { ts: '10:41:30', level: 'INFO', src: 'grafana.datasource', msg: 'Prometheus datasource health check succeeded (http://prometheus.internal:9090)' },
+          { ts: '10:44:10', level: 'INFO', src: 'grafana.render', msg: 'Rendered Golden Signals dashboard panels for InfraPilot Control Plane' }
+        ],
+        'int-prom-01': [
+          { ts: '10:35:00', level: 'INFO', src: 'prometheus.tsdb', msg: 'TSDB started (scrape_interval=5s, active_targets=6/6 UP)' },
+          { ts: '10:42:15', level: 'INFO', src: 'promql.engine', msg: 'Evaluated 18 SLO recording & alerting rules in 1.9ms' },
+          { ts: '10:44:18', level: 'INFO', src: 'alertmanager', msg: 'Webhook receiver connected to InfraPilot /api/v1/integrations/webhook/prometheus' }
+        ],
+        'int-tf-01': [
+          { ts: '10:38:20', level: 'INFO', src: 'terraform.cloud', msg: 'Connected organization infrapilot-ops (3 active workspaces, Terraform v1.8.4)' },
+          { ts: '10:42:50', level: 'INFO', src: 'terraform.drift', msg: 'Scheduled drift check on prod-aws-us-east-1: 0 resources drifted out of 48' },
+          { ts: '10:44:25', level: 'INFO', src: 'terraform.state', msg: 'State lock verified on prod-rds-redis-stateful (SHA256 integrity OK)' }
+        ],
+        'int-aws-01': [
+          { ts: '10:36:45', level: 'INFO', src: 'aws.sts', msg: 'Assumed IAM Role arn:aws:iam::90421001:role/InfraPilotControlPlaneRole (us-east-1)' },
+          { ts: '10:41:55', level: 'INFO', src: 'aws.autoscaling', msg: 'ASG prod-worker-asg desired=3, min=2, max=6 (all instances InService)' },
+          { ts: '10:44:30', level: 'INFO', src: 'aws.rds', msg: 'RDS prod-orders-postgres-primary Multi-AZ status: available (us-east-1a -> us-east-1b)' }
+        ],
+        'int-ansible-01': [
+          { ts: '10:39:12', level: 'INFO', src: 'ansible.runner', msg: 'Ansible Core 2.16.6 runner ready (inventory: 6 production hosts)' },
+          { ts: '10:43:30', level: 'INFO', src: 'ansible.playbook', msg: 'Playbook playbooks/nginx_tls_reload.yml completed: ok=12 changed=2 failed=0' }
+        ],
+        'int-jenkins-01': [
+          { ts: '10:38:05', level: 'INFO', src: 'jenkins.core', msg: 'Jenkins LTS 2.462.1 REST API online (4 build executors idle)' },
+          { ts: '10:43:00', level: 'INFO', src: 'jenkins.job', msg: 'Pipeline nexuspay-prod-release #420 completed: SUCCESS in 2m 14s' }
+        ],
+        'int-copilot-01': [
+          { ts: '10:39:40', level: 'INFO', src: 'copilot.enterprise', msg: 'GitHub Copilot Enterprise API synced (48/50 active seats in org infrapilot-eng)' },
+          { ts: '10:44:05', level: 'INFO', src: 'copilot.sre', msg: 'AI Log Root-Cause Analyzer ready (secret_pii_redaction=STRICT)' }
+        ],
+        'int-nexus-sdk': [
+          { ts: '10:38:02', level: 'INFO', src: 'nexuspay.sdk', msg: 'InfraPilotToolAgent registered 5 actions from http://127.0.0.1:5055' },
+          { ts: '10:44:12', level: 'INFO', src: 'nexuspay.health', msg: 'Heartbeat OK: status=HEALTHY, version=v2.3.1, p99_latency=6.2ms' }
+        ]
+      },
+
+      shellHistory: [
+        'InfraPilot Interactive Execution Console & Container Shell Ready (v2.4.0).',
+        'Every task, automation, scale action, build, or query automatically streams its execution output right here!'
+      ],
+
+      cliHistory: [
+        'InfraPilot Control Plane CLI (v2.4.0)',
+        'Try any command from the CLI & SDK Docs page, or click "Run in CLI" on any documented command!'
+      ]
+    };
+
+    // ============================================================================
+    // CORE UTILITIES, AUTO-OPENING CLI HELPER & THEME / ROLE SWITCHERS
+    // ============================================================================
+    function escapeHtml(s) {
+      return String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function timeNow() {
+      return new Date().toLocaleTimeString([], { hour12: false });
+    }
+
+    function showToast(msg, color = 'var(--primary)') {
+      const stack = document.getElementById('toast-stack');
+      const item = document.createElement('div');
+      item.className = 'toast';
+      item.style.borderColor = color;
+      item.style.borderLeftColor = color;
+      item.textContent = msg;
+      stack.appendChild(item);
+      setTimeout(() => {
+        if (item.parentNode) item.parentNode.removeChild(item);
+      }, 3600);
+    }
+
+    function toggleMobileSidebar(forceOpen = null) {
+      const sb = document.getElementById('app-sidebar');
+      const bd = document.getElementById('sidebar-backdrop');
+      const isOpen = forceOpen !== null ? forceOpen : !sb.classList.contains('mobile-open');
+      sb.classList.toggle('mobile-open', isOpen);
+      bd.classList.toggle('mobile-open', isOpen);
+    }
+
+    function toggleThemeMode() {
+      STATE.theme = STATE.theme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', STATE.theme);
+      const btn = document.getElementById('theme-toggle-btn');
+      btn.textContent = STATE.theme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+      showToast(`Switched to ${STATE.theme === 'light' ? 'Light' : 'Dark'} Mode`);
+    }
+
+    function switchUserRole(newRole) {
+      STATE.currentRole = newRole;
+      const roleSelect = document.getElementById('role-select');
+      if (roleSelect && roleSelect.value !== newRole) roleSelect.value = newRole;
+      showToast(`Switched active role to ${newRole}`, 'var(--purple)');
+      renderCurrentPage();
+    }
+
+    function toggleDemoAppConnection() {
+      STATE.demoApp.connected = !STATE.demoApp.connected;
+      const sdkTool = STATE.tools.find(t => t.id === 'int-nexus-sdk');
+      if (sdkTool) sdkTool.status = STATE.demoApp.connected ? 'CONNECTED' : 'DISCONNECTED';
+
+      syncNavigationBadges();
+      autoOpenCliForTask(
+        'int-nexus-sdk',
+        STATE.demoApp.connected ? 'infrapilot tools connect "NexusPay App SDK Agent" --endpoint http://127.0.0.1:5055' : 'infrapilot tools disconnect int-nexus-sdk',
+        STATE.demoApp.connected
+          ? ['[SDK Handshake] Connected to NexusPay Order & Payment Gateway (http://127.0.0.1:5055)', '[SDK Hooks] Registered 5 remediation actions: app_health_check, app_restart_workers, app_flush_cache, app_scale_replicas, app_rollback_release', 'Status: ● CONNECTED (Green)']
+          : ['[SDK Disconnect] Closed control-plane session with http://127.0.0.1:5055', 'Status: ● DISCONNECTED (Red)'],
+        STATE.demoApp.connected ? 'Reconnected NexusPay App SDK Agent' : 'Disconnected NexusPay App SDK Agent'
+      );
+      renderCurrentPage();
+    }
+
+    // CENTRAL AUTO-OPENING CLI & LOG STREAMING ENGINE
+    function autoOpenCliForTask(targetId, commandStr, outputLines, logSummary, tab = 'shell') {
+      if (targetId) STATE.selectedTargetId = targetId;
+      const ts = timeNow();
+      if (!STATE.logsByTarget[STATE.selectedTargetId]) {
+        STATE.logsByTarget[STATE.selectedTargetId] = [];
+      }
+      STATE.logsByTarget[STATE.selectedTargetId].push({
+        ts,
+        level: 'INFO',
+        src: 'control.plane',
+        msg: logSummary || commandStr
+      });
+      for (const line of outputLines) {
+        STATE.logsByTarget[STATE.selectedTargetId].push({
+          ts,
+          level: line.includes('ERROR') || line.includes('CRITICAL') ? 'ERROR' : 'INFO',
+          src: 'exec.stream',
+          msg: line
+        });
+      }
+
+      const block = `[${ts}] $ ${commandStr}\n${outputLines.join('\n')}`;
+      STATE.shellHistory.push(block);
+      STATE.cliHistory.push(block);
+
+      STATE.drawerTab = tab;
+      ['shell', 'logs', 'cli'].forEach(t => {
+        const btn = document.getElementById(`dtab-${t}`);
+        if (btn) btn.classList.toggle('active', t === tab);
+      });
+
+      toggleDrawer(true);
+      syncNavigationBadges();
+      renderDrawerOutput();
+    }
+
+    function openToolLogsInDrawer(targetId) {
+      STATE.selectedTargetId = targetId;
+      STATE.drawerTab = 'logs';
+      ['shell', 'logs', 'cli'].forEach(t => {
+        const btn = document.getElementById(`dtab-${t}`);
+        if (btn) btn.classList.toggle('active', t === 'logs');
+      });
+      toggleDrawer(true);
+      syncNavigationBadges();
+      renderDrawerOutput();
+      showToast(`Streaming live logs for ${targetId}`);
+    }
+
+    function syncNavigationBadges() {
+      document.getElementById('pill-workloads').textContent = String(STATE.workloads.length);
+      document.getElementById('pill-tools').textContent = String(STATE.tools.length);
+      document.getElementById('pill-ansible').textContent = String(STATE.automations.length);
+      document.getElementById('pill-jenkins').textContent = String(STATE.jenkinsPipelines.length);
+
+      const openInc = STATE.incidents.filter(i => i.status !== 'RESOLVED').length;
+      const incPill = document.getElementById('pill-incidents');
+      incPill.textContent = String(openInc);
+      incPill.className = openInc > 0 ? 'nav-pill danger' : 'nav-pill';
+
+      // Connected App Sidebar Widget Green / Red Dot
+      const appDot = document.getElementById('sidebar-app-dot');
+      const appTxt = document.getElementById('sidebar-app-status-text');
+      const appBtn = document.getElementById('demo-conn-toggle-btn');
+      if (STATE.demoApp.connected) {
+        appDot.className = 'status-dot-green';
+        appTxt.textContent = 'Connected (NexusPay :5055)';
+        appTxt.style.color = 'var(--success)';
+        appBtn.textContent = 'Disconnect';
+      } else {
+        appDot.className = 'status-dot-red';
+        appTxt.textContent = 'Not Connected (:5055)';
+        appTxt.style.color = 'var(--danger)';
+        appBtn.textContent = 'Connect';
+      }
+
+      // Header Cluster Pill
+      const badge = document.getElementById('header-cluster-badge');
+      const dot = document.getElementById('header-pulse-dot');
+      const txt = document.getElementById('header-cluster-text');
+      if (STATE.demoApp.status === 'HEALTHY' && openInc === 0 && STATE.demoApp.connected) {
+        badge.className = 'cluster-status-pill';
+        dot.className = 'status-dot-green';
+        txt.textContent = `All ${STATE.tools.length} DevOps Tools Connected`;
+      } else {
+        badge.className = 'cluster-status-pill degraded';
+        dot.className = 'status-dot-red';
+        txt.textContent = !STATE.demoApp.connected ? 'Demo App Disconnected' : `${openInc} Active Incident(s) — Attention Required`;
+      }
+
+      const sel = document.getElementById('drawer-target-select');
+      if (sel) {
+        sel.innerHTML = [
+          `<optgroup label="Containers &amp; Workloads">`,
+          ...STATE.workloads.map(w => `<option value="${w.id}" ${w.id === STATE.selectedTargetId ? 'selected' : ''}>📦 ${escapeHtml(w.name)} (${w.id})</option>`),
+          `</optgroup><optgroup label="Connected DevOps Tools">`,
+          ...STATE.tools.map(t => `<option value="${t.id}" ${t.id === STATE.selectedTargetId ? 'selected' : ''}>🔌 ${escapeHtml(t.name)} (${t.id})</option>`),
+          `</optgroup>`
+        ].join('');
+      }
+      const w = STATE.workloads.find(x => x.id === STATE.selectedTargetId);
+      const t = STATE.tools.find(x => x.id === STATE.selectedTargetId);
+      const tName = w ? w.name : (t ? t.name : STATE.selectedTargetId);
+      document.getElementById('drawer-target-name').textContent = tName;
+      document.getElementById('drawer-prompt').textContent =
+        STATE.drawerTab === 'cli'
+          ? 'infrapilot$'
+          : (STATE.shellType === 'pwsh' ? `PS /app/${tName}>` : (STATE.shellType === 'cmd' ? `C:\\${tName}>` : `root@${tName}:/app#`));
+    }
+
+    // ============================================================================
+    // NAVIGATION ROUTER
+    // ============================================================================
+    function navigateTo(pageId) {
+      STATE.currentPage = pageId;
+      toggleMobileSidebar(false);
+      const pages = ['overview', 'workloads', 'tools', 'incidents', 'observability', 'terraform', 'ansible', 'jenkins', 'copilot', 'users', 'console', 'docs'];
+      pages.forEach(p => {
+        const el = document.getElementById(`nav-${p}`);
+        if (el) el.classList.toggle('active', p === pageId);
+      });
+
+      const titles = {
+        overview: 'Dashboard Overview',
+        workloads: 'Workloads, Containers & Pods',
+        tools: 'Connect & Manage DevOps Tools',
+        incidents: 'Incidents & Alerts Center',
+        observability: 'Grafana Dashboards & Prometheus TSDB',
+        terraform: 'Terraform Cloud & AWS Infrastructure',
+        ansible: 'Ansible & Automation Playbooks',
+        jenkins: 'Jenkins CI/CD Pipelines',
+        copilot: 'GitHub Copilot Enterprise & AI SRE',
+        users: 'Users & RBAC Access Control (Super Admin)',
+        console: 'Live Logs & Interactive CLI Terminal',
+        docs: 'InfraPilot CLI & Python SDK Documentation'
+      };
+      document.getElementById('header-page-title').textContent = titles[pageId] || 'InfraPilot';
+      renderCurrentPage();
+    }
+
+    // ============================================================================
+    // DRAWER CONTROLS
+    // ============================================================================
+    function toggleDrawer(forceState = null) {
+      STATE.drawerOpen = forceState !== null ? forceState : !STATE.drawerOpen;
+      const d = document.getElementById('console-drawer');
+      d.classList.toggle('open', STATE.drawerOpen);
+      document.getElementById('drawer-toggle-label').textContent = STATE.drawerOpen ? 'Minimize ▼' : 'Expand ▲';
+      renderDrawerOutput();
+    }
+
+    function openDrawerTab(tab, targetId = null) {
+      if (targetId) STATE.selectedTargetId = targetId;
+      STATE.drawerTab = tab;
+      ['shell', 'logs', 'cli'].forEach(t => {
+        const btn = document.getElementById(`dtab-${t}`);
+        if (btn) btn.classList.toggle('active', t === tab);
+      });
+      toggleDrawer(true);
+      syncNavigationBadges();
+      renderDrawerOutput();
+    }
+
+    function clearDrawerTerminal() {
+      if (STATE.drawerTab === 'shell') STATE.shellHistory = [];
+      else if (STATE.drawerTab === 'cli') STATE.cliHistory = [];
+      else if (STATE.drawerTab === 'logs') STATE.logsByTarget[STATE.selectedTargetId] = [];
+      renderDrawerOutput();
+    }
+
+    function selectTarget(targetId) {
+      STATE.selectedTargetId = targetId;
+      syncNavigationBadges();
+      renderDrawerOutput();
+      if (STATE.currentPage === 'console') renderCurrentPage();
+    }
+
+    function changeShellType(shell) {
+      STATE.shellType = shell;
+      syncNavigationBadges();
+      showToast(`Container shell mode set to ${shell}`);
+      if (STATE.currentPage === 'console') renderCurrentPage();
+    }
+
+    function addLogEntry(targetId, level, src, msg) {
+      if (!STATE.logsByTarget[targetId]) STATE.logsByTarget[targetId] = [];
+      STATE.logsByTarget[targetId].push({ ts: timeNow(), level, src, msg });
+      renderDrawerOutput();
+    }
+
+    function executeShellCommand(targetId, rawCmd) {
+      const cmd = (rawCmd || '').trim();
+      if (!cmd) return;
+      const w = STATE.workloads.find(x => x.id === targetId) || STATE.workloads[0];
+      const low = cmd.toLowerCase();
+      let lines = [];
+
+      if (low === 'ps aux' || low === 'get-process') {
+        lines = [
+          'USER       PID %CPU %MEM    VSZ   RSS STAT START   TIME COMMAND',
+          'root         1  0.3  0.8  24812  8420 Ss   Nov01   2:14 /sbin/tini -- /entrypoint.sh',
+          `appuser     42 ${w.cpu.toFixed(1)} 18.4 894210 ${w.memMb * 1024} Sl   Nov01  84:19 python3 -m gunicorn app:app --workers 4 --bind 0.0.0.0:5055`,
+          'appuser     89  0.2  1.1  98104 12400 S    Nov01   4:02 /usr/local/bin/infrapilot-agent'
+        ];
+      } else if (low === 'env' || low === 'printenv') {
+        lines = [
+          `SERVICE_NAME=${w.name}`,
+          `PROVIDER=${w.provider}`,
+          `IMAGE=${w.image}`,
+          `PORTS=${w.ports}`,
+          `INFRAPILOT_SDK=connected`
+        ];
+      } else if (low.startsWith('netstat') || low.startsWith('ss ')) {
+        lines = [
+          'Proto Local Address      Foreign Address    State       PID/Program',
+          `tcp   0.0.0.0:5055       0.0.0.0:*          LISTEN      42/gunicorn (${w.name})`,
+          'tcp   0.0.0.0:9102       0.0.0.0:*          LISTEN      89/infrapilot-agent'
+        ];
+      } else if (low.includes('df -h') || low.includes('free -m')) {
+        lines = [
+          'Filesystem      Size  Used Avail Use% Mounted on',
+          'overlay          80G   28G   52G  35% /',
+          `Memory: ${w.memMb} MB used / ${w.memLimitMb} MB limit`
+        ];
+      } else if (low.includes('redis-cli flushall')) {
+        STATE.demoApp.redisMemMb = 114.0;
+        const r = STATE.workloads.find(x => x.id === 'res-nexus-redis');
+        if (r) { r.memMb = 114; r.status = 'RUNNING'; }
+        lines = ['OK — Flushed stale session keys (Redis memory dropped to 114 MB).'];
+      } else if (low.includes('supervisorctl restart') || low === 'restart') {
+        w.cpu = 16.4;
+        w.status = 'RUNNING';
+        STATE.demoApp.workerCpu = 16.4;
+        STATE.demoApp.status = 'HEALTHY';
+        lines = [`${w.name}: stopped`, `${w.name}: started (pid 412, CPU normalized to 16.4%)`];
+      } else if (low.startsWith('infrapilot')) {
+        runCliCommand(cmd);
+        return;
+      } else {
+        lines = [`[${STATE.shellType}] Executed on ${w.name}: "${cmd}" -> exit_code=0`];
+      }
+
+      autoOpenCliForTask(targetId, cmd, lines, `Executed "${cmd}" in ${w.name}`, 'shell');
+      if (STATE.currentPage === 'console' || STATE.currentPage === 'workloads') renderCurrentPage();
+    }
+
+    function runCliCommand(rawCmd) {
+      const cmd = (rawCmd || '').trim();
+      if (!cmd) return;
+      let lines = [];
+      if (cmd.includes('status')) {
+        lines = [
+          '╭──────────────────────────── InfraPilot Telemetry ────────────────────────────╮',
+          `│ ● CONTROL PLANE ONLINE  |  Tools Connected: ${STATE.tools.length}  |  Workloads: ${STATE.workloads.length}               │`,
+          `│ Active Role: ${STATE.currentRole.padEnd(12)} |  Open Incidents: ${STATE.incidents.filter(i => i.status !== 'RESOLVED').length}  |  Copilot Seats: ${STATE.copilot.activeSeats}/${STATE.copilot.totalSeats}    │`,
+          '╰──────────────────────────────────────────────────────────────────────────────╯'
+        ];
+      } else if (cmd.includes('tools connect')) {
+        lines = [
+          '✔ Connected New Tool Endpoint via InfraPilot CLI',
+          '  Handshake verified -> HTTP 200 OK (circuit_state=CLOSED)'
+        ];
+      } else if (cmd.includes('tools')) {
+        lines = STATE.tools.map(t => `${t.id.padEnd(16)} ${t.name.padEnd(32)} ${t.provider.padEnd(14)} ${t.endpoint}`);
+      } else if (cmd.includes('jenkins')) {
+        lines = STATE.jenkinsPipelines.map(p => `${p.name.padEnd(32)} branch=${p.branch.padEnd(12)} #${p.lastBuild} [${p.status}]`);
+      } else if (cmd.includes('terraform')) {
+        lines = [
+          'Terraform v1.8.4 — Running Workspace Plan on prod-aws-us-east-1...',
+          '  + aws_cloudwatch_metric_alarm.nexuspay_p99_slo (create)',
+          '  ~ aws_autoscaling_group.prod_workers (desired_capacity: 3 -> 4)',
+          'Plan: 1 to add, 1 to change, 0 to destroy.'
+        ];
+      } else if (cmd.includes('prometheus')) {
+        lines = STATE.promQueryLast.results;
+      } else if (cmd.includes('grafana')) {
+        lines = STATE.grafanaDashboards.map(d => `${d.uid.padEnd(18)} | ${d.title.padEnd(46)} | ${d.url}`);
+      } else if (cmd.includes('users')) {
+        lines = STATE.rbacUsers.map(u => `${u.email.padEnd(28)} Role=${u.role.padEnd(12)} Permissions=${u.permissions.join(',')}`);
+      } else if (cmd.includes('logs')) {
+        const logs = STATE.logsByTarget[STATE.selectedTargetId] || [];
+        lines = logs.map(l => `${l.ts} [${l.level}] [${l.src}] ${l.msg}`);
+      } else {
+        lines = [`Executed CLI command: ${cmd} -> exit_code=0`];
+      }
+      autoOpenCliForTask(STATE.selectedTargetId, cmd, lines, `CLI executed: ${cmd}`, 'cli');
+      if (STATE.currentPage === 'console') renderCurrentPage();
+    }
+
+    function runDrawerCommand() {
+      const inp = document.getElementById('drawer-input');
+      const val = inp.value.trim();
+      if (!val) return;
+      inp.value = '';
+      if (STATE.drawerTab === 'cli' || val.startsWith('infrapilot')) {
+        runCliCommand(val);
+      } else {
+        executeShellCommand(STATE.selectedTargetId, val);
+      }
+    }
+
+    function renderDrawerOutput() {
+      const box = document.getElementById('drawer-output');
+      if (!box) return;
+      if (STATE.drawerTab === 'shell') {
+        box.textContent = STATE.shellHistory.join('\n\n');
+      } else if (STATE.drawerTab === 'logs') {
+        const logs = STATE.logsByTarget[STATE.selectedTargetId] || [];
+        box.textContent = logs.map(l => `${l.ts} [${l.level}] [${l.src}] ${l.msg}`).join('\n') || 'No log entries recorded for this target.';
+      } else {
+        box.textContent = STATE.cliHistory.join('\n\n');
+      }
+      box.scrollTop = box.scrollHeight;
+    }
+
+    // ============================================================================
+    // TASK ACTIONS (ALL AUTOMATICALLY SLIDE OPEN THE CLI DRAWER WITH OUTPUT!)
+    // ============================================================================
+    function controlContainer(id, action) {
+      const w = STATE.workloads.find(x => x.id === id);
+      if (!w) return;
+      let cmd = '';
+      let out = [];
+      if (action === 'restart') {
+        w.status = 'RUNNING';
+        w.cpu = 15.2;
+        cmd = `infrapilot resources action ${w.id} restart`;
+        out = [
+          `[Docker/K8s Engine] Sending SIGTERM to container ${w.name} (${w.id})...`,
+          `[Docker/K8s Engine] Container stopped gracefully in 1.2s.`,
+          `[Docker/K8s Engine] Started new container instance -> status=RUNNING, CPU=15.2%`,
+          `✔ Health check GET /health passed (HTTP 200 OK)`
+        ];
+        showToast(`Restarted ${w.name}`, 'var(--success)');
+      } else if (action === 'toggle') {
+        w.status = w.status === 'STOPPED' ? 'RUNNING' : 'STOPPED';
+        w.cpu = w.status === 'STOPPED' ? 0 : 14.5;
+        cmd = `infrapilot resources action ${w.id} ${w.status === 'STOPPED' ? 'stop' : 'start'}`;
+        out = [
+          `[Runtime Control] State transition for ${w.name}: -> ${w.status}`,
+          `✔ Cgroup v2 resource state updated.`
+        ];
+        showToast(`${w.name} is now ${w.status}`, 'var(--warning)');
+      } else if (action === 'scale') {
+        w.replicas = w.replicas === '3/3' ? '5/5' : '3/3';
+        cmd = `infrapilot resources action ${w.id} scale --replicas ${w.replicas.split('/')[0]}`;
+        out = [
+          `[Kubernetes Horizontal Scaler] Patching deployment ${w.name} replicas -> ${w.replicas}...`,
+          `[Kubernetes Rollout] Waiting for new pods to pass readiness probes...`,
+          `✔ Scaled ${w.name} to ${w.replicas} ready replicas.`
+        ];
+        showToast(`Scaled ${w.name} to ${w.replicas}`, 'var(--primary)');
+      }
+      autoOpenCliForTask(w.id, cmd, out, `Container action ${action} on ${w.name}`, 'shell');
+      renderCurrentPage();
+    }
+
+    function deployNewWorkload() {
+      const name = document.getElementById('new-wl-name').value.trim();
+      const provider = document.getElementById('new-wl-provider').value;
+      const image = document.getElementById('new-wl-image').value.trim() || 'nginx:1.27-alpine';
+      const ports = document.getElementById('new-wl-ports').value.trim() || '8080:80';
+      if (!name) {
+        showToast('Please enter a Container / Workload Name.', 'var(--warning)');
+        return;
+      }
+      const newId = `res-${Date.now().toString().slice(-4)}`;
+      STATE.workloads.unshift({
+        id: newId,
+        name,
+        role: 'Custom Deployed Service',
+        provider,
+        type: provider === 'Kubernetes' ? 'DEPLOYMENT' : 'CONTAINER',
+        image,
+        status: 'RUNNING',
+        cpu: 8.4,
+        memMb: 96,
+        memLimitMb: 512,
+        replicas: '1/1',
+        ports
+      });
+      STATE.logsByTarget[newId] = [
+        { ts: timeNow(), level: 'INFO', src: 'runtime', msg: `Container ${name} (${image}) pulled and started on ${ports}` }
+      ];
+      autoOpenCliForTask(
+        newId,
+        `infrapilot resources deploy ${name} --provider ${provider.toLowerCase()} --image ${image} --ports ${ports}`,
+        [
+          `[${provider}] Pulling image ${image}... Done (1.8s)`,
+          `[${provider}] Creating container ${name} (${newId}) with port mapping ${ports}...`,
+          `✔ Workload ${name} is RUNNING and streaming telemetry to InfraPilot.`
+        ],
+        `Deployed new workload ${name} (${newId})`,
+        'shell'
+      );
+      renderCurrentPage();
+      showToast(`Deployed & connected container: ${name}`, 'var(--success)');
+    }
+
+    function connectNewToolEndpoint() {
+      const name = document.getElementById('new-tool-name').value.trim();
+      const provider = document.getElementById('new-tool-provider').value;
+      const endpoint = document.getElementById('new-tool-endpoint').value.trim();
+      const desc = document.getElementById('new-tool-desc').value.trim() || `Connected ${provider} endpoint`;
+
+      if (!name || !endpoint) {
+        showToast('Please enter both a Tool Name and Endpoint URL.', 'var(--warning)');
+        return;
+      }
+      const pageMap = {
+        Grafana: 'observability',
+        Prometheus: 'observability',
+        Terraform: 'terraform',
+        AWS: 'terraform',
+        Ansible: 'ansible',
+        Jenkins: 'jenkins',
+        'GitHub Copilot': 'copilot',
+        Docker: 'workloads',
+        Kubernetes: 'workloads'
+      };
+      const newId = `int-${provider.toLowerCase().replace(/\s+/g, '')}-${Math.floor(10 + Math.random() * 89)}`;
+      STATE.tools.unshift({
+        id: newId,
+        name,
+        provider,
+        controlPage: pageMap[provider] || 'tools',
+        endpoint,
+        status: 'CONNECTED',
+        latency: '3.1 ms',
+        description: desc
+      });
+      STATE.logsByTarget[newId] = [
+        { ts: timeNow(), level: 'INFO', src: 'connector.init', msg: `Connected ${name} (${provider}) at ${endpoint} -> handshake HTTP 200 OK` },
+        { ts: timeNow(), level: 'INFO', src: 'circuit.breaker', msg: `Circuit breaker state=CLOSED, latency=3.1ms` }
+      ];
+      autoOpenCliForTask(
+        newId,
+        `infrapilot tools connect "${name}" --provider ${provider.toLowerCase().replace(/\s+/g, '_')} --endpoint "${endpoint}"`,
+        [
+          `[Connector] Probing ${provider} API endpoint at ${endpoint}...`,
+          `[Connector] TLS & Auth handshake verified (latency=3.1 ms, circuit=CLOSED)`,
+          `✔ Registered tool integration ${newId} (${name})`
+        ],
+        `Connected new ${provider} endpoint ${name} at ${endpoint}`,
+        'logs'
+      );
+      renderCurrentPage();
+      showToast(`Connected new ${provider} endpoint: ${name}`, 'var(--success)');
+    }
+
+    function testToolConnection(toolId) {
+      const t = STATE.tools.find(x => x.id === toolId);
+      if (!t) return;
+      t.status = 'CONNECTED';
+      autoOpenCliForTask(
+        t.id,
+        `infrapilot tools probe ${t.id} --endpoint "${t.endpoint}"`,
+        [
+          `[Health Probe] GET ${t.endpoint} -> HTTP 200 OK (${t.latency})`,
+          `[Circuit Breaker] State=CLOSED, failure_count=0`,
+          `✔ Tool "${t.name}" is healthy and streaming logs.`
+        ],
+        `Health probe passed for ${t.name} (${t.endpoint})`,
+        'logs'
+      );
+      renderCurrentPage();
+      showToast(`Verified ${t.name} — Healthy (${t.latency})`, 'var(--success)');
+    }
+
+    function runAutomationPlaybook(pbId) {
+      const pb = STATE.automations.find(x => x.id === pbId);
+      if (!pb) return;
+      if (pb.approvalRequired && STATE.currentRole === 'DEVELOPER') {
+        showToast('High-risk playbook requires Super Admin or Admin approval — queued!', 'var(--warning)');
+      }
+      if (pb.approvalRequired) {
+        const apprId = `APPR-${Math.floor(1000 + Math.random() * 9000)}`;
+        STATE.approvals.unshift({
+          id: apprId,
+          pbId: pb.id,
+          pbName: pb.name,
+          target: pb.target,
+          risk: pb.risk,
+          status: 'PENDING',
+          time: timeNow()
+        });
+        pb.lastRun = `Pending Approval (${apprId})`;
+        autoOpenCliForTask(
+          'int-ansible-01',
+          `infrapilot automation run ${pb.id}`,
+          [
+            `[Policy Engine] Playbook "${pb.name}" has risk=${pb.risk} (approval_required=true).`,
+            `[Policy Gate] Execution paused and queued for Super Admin / Admin approval: ${apprId}`
+          ],
+          `Queued high-risk playbook ${pb.name} for approval (${apprId})`,
+          'shell'
+        );
+        showToast(`High-Risk Playbook queued for approval (${apprId})`, 'var(--warning)');
+      } else {
+        pb.lastRun = `Succeeded at ${timeNow()}`;
+        healAllSystems(false);
+        autoOpenCliForTask(
+          'int-ansible-01',
+          `infrapilot automation run ${pb.id} --target ${pb.target}`,
+          [
+            `PLAY [${pb.name}] ****************************************************`,
+            ...pb.steps.map((s, i) => `TASK [Step ${i + 1}: ${s}] ************************************ ok: [${pb.target}]`),
+            `PLAY RECAP *********************************************************************`,
+            `${pb.target} : ok=${pb.steps.length}  changed=1  unreachable=0  failed=0  skipped=0`
+          ],
+          `Executed playbook "${pb.name}" on ${pb.target}`,
+          'shell'
+        );
+        showToast(`Executed "${pb.name}" — see live output in CLI drawer!`, 'var(--success)');
+      }
+      renderCurrentPage();
+    }
+
+    function createNewAnsibleAutomation() {
+      const name = document.getElementById('new-auto-name').value.trim();
+      const provider = document.getElementById('new-auto-provider').value;
+      const target = document.getElementById('new-auto-target').value.trim() || 'prod-cluster-nodes';
+      const playbookFile = document.getElementById('new-auto-file').value.trim() || 'playbooks/custom_task.yml';
+      const risk = document.getElementById('new-auto-risk').value;
+
+      if (!name) {
+        showToast('Please enter a Playbook / Automation Name.', 'var(--warning)');
+        return;
+      }
+
+      const newPb = {
+        id: `pb-${Date.now().toString().slice(-4)}`,
+        name,
+        provider,
+        target,
+        playbookFile,
+        risk,
+        approvalRequired: risk === 'HIGH',
+        lastRun: 'Ready to run',
+        steps: ['Verify Target Connectivity', `Execute ${playbookFile}`, 'Post-Execution Health Check']
+      };
+      STATE.automations.unshift(newPb);
+      autoOpenCliForTask(
+        'int-ansible-01',
+        `infrapilot automation create "${name}" --provider ${provider.toLowerCase()} --action "${playbookFile}" --target "${target}" --risk ${risk}`,
+        [
+          `[Automation Registry] Validating YAML schema for ${playbookFile}... OK`,
+          `✔ Registered playbook ${newPb.id} (${name}) targeting ${target}`
+        ],
+        `Created ${provider} automation "${name}"`,
+        'shell'
+      );
+      renderCurrentPage();
+      showToast(`Created ${provider} Automation: ${name}`, 'var(--success)');
+    }
+
+    function handleApprovalDecision(apprId, decision) {
+      if (STATE.currentRole === 'DEVELOPER') {
+        showToast('Only Super Admin or Admin can approve production gates. Switch Role in header!', 'var(--danger)');
+        return;
+      }
+      const a = STATE.approvals.find(x => x.id === apprId);
+      if (!a) return;
+      a.status = decision;
+      const pb = STATE.automations.find(x => x.id === a.pbId);
+      if (decision === 'APPROVED') {
+        if (pb) pb.lastRun = `Approved & Succeeded at ${timeNow()}`;
+        healAllSystems(false);
+        autoOpenCliForTask(
+          'int-k8s-01',
+          `infrapilot automation approve ${apprId}`,
+          [
+            `[RBAC Gate] Approved by ${STATE.currentRole} (${apprId})`,
+            `[Execution Engine] Running "${a.pbName}" on ${a.target}...`,
+            `✔ Rollback & verification steps completed with 0 errors.`
+          ],
+          `Approved ${apprId} and executed ${a.pbName}`,
+          'shell'
+        );
+        showToast(`Approved ${apprId} — Playbook executed!`, 'var(--success)');
+      } else {
+        if (pb) pb.lastRun = `Rejected at ${timeNow()}`;
+        showToast(`Rejected approval request ${apprId}`, 'var(--danger)');
+      }
+      renderCurrentPage();
+    }
+
+    function createNewJenkinsPipeline() {
+      const name = document.getElementById('new-pipe-name').value.trim();
+      const repo = document.getElementById('new-pipe-repo').value.trim() || 'https://github.com/infrapilot-eng/service.git';
+      const branch = document.getElementById('new-pipe-branch').value.trim() || 'main';
+      if (!name) {
+        showToast('Please enter a Pipeline Name.', 'var(--warning)');
+        return;
+      }
+      const newPipe = {
+        id: `pipe-${Date.now().toString().slice(-4)}`,
+        name,
+        repo,
+        branch,
+        lastBuild: 1,
+        status: 'SUCCESS',
+        duration: '1m 05s',
+        stages: [
+          { name: 'Checkout SCM', status: 'SUCCESS', time: '3s' },
+          { name: 'Unit & API Tests', status: 'SUCCESS', time: '22s' },
+          { name: 'Docker Build & Push', status: 'SUCCESS', time: '25s' },
+          { name: 'Deploy to Cluster', status: 'SUCCESS', time: '15s' }
+        ],
+        logs: [
+          `[Jenkins] Created pipeline "${name}" tracking ${repo} (${branch})`,
+          '[Jenkins] Initial build #1 triggered and passed all 4 stages.',
+          'Finished: SUCCESS'
+        ]
+      };
+      STATE.jenkinsPipelines.unshift(newPipe);
+      STATE.selectedPipelineId = newPipe.id;
+      autoOpenCliForTask(
+        'int-jenkins-01',
+        `infrapilot jenkins create "${name}" --branch ${branch} --repo "${repo}"`,
+        newPipe.logs,
+        `Created Jenkins pipeline ${name} (${newPipe.id})`,
+        'shell'
+      );
+      renderCurrentPage();
+      showToast(`Created Jenkins Pipeline: ${name}`, 'var(--success)');
+    }
+
+    function triggerJenkinsPipelineBuild(pipeId) {
+      const p = STATE.jenkinsPipelines.find(x => x.id === pipeId) || STATE.jenkinsPipelines[0];
+      const branchEl = document.getElementById(`branch-${p.id}`);
+      const tagEl = document.getElementById(`tag-${p.id}`);
+      const branch = branchEl ? branchEl.value.trim() || p.branch : p.branch;
+      const tag = tagEl ? tagEl.value.trim() || 'v2.4.5' : 'v2.4.5';
+
+      p.lastBuild += 1;
+      p.branch = branch;
+      p.status = 'SUCCESS';
+      const buildLines = [
+        `--- Jenkins Build #${p.lastBuild} (${p.name}) triggered at ${timeNow()} ---`,
+        `[Parameters] BRANCH=${branch}, IMAGE_TAG=${tag}`,
+        `[Stage 1] Checkout SCM (${p.repo} @ ${branch}) -> OK`,
+        `[Stage 2] Test Suite -> 54 passed, 0 failed`,
+        `[Stage 3] Docker Buildx -> pushed ${tag}`,
+        `[Stage 4] Kubernetes Rollout -> deployment updated`,
+        `Finished: SUCCESS`
+      ];
+      p.logs.push(...buildLines);
+      STATE.selectedPipelineId = p.id;
+      autoOpenCliForTask(
+        'int-jenkins-01',
+        `infrapilot jenkins build ${p.name} --branch ${branch} --tag ${tag}`,
+        buildLines,
+        `Triggered Jenkins build #${p.lastBuild} for ${p.name}`,
+        'shell'
+      );
+      renderCurrentPage();
+      showToast(`Jenkins Build #${p.lastBuild} succeeded!`, 'var(--success)');
+    }
+
+    // GRAFANA & PROMETHEUS ACTIONS
+    function runPromQlPreset(presetKey) {
+      const map = {
+        rps: "rate(nexuspay_requests_total[5m])",
+        p99: "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))"
+      };
+      runPromQlQuery(map[presetKey] || "up");
+    }
+
+    function runPromQlQuery(customExpr = null) {
+      const inp = document.getElementById('promql-input');
+      const expr = customExpr || (inp ? inp.value.trim() : 'rate(nexuspay_requests_total[5m])');
+      if (!expr) return;
+      STATE.promQueryLast = {
+        expr,
+        results: [
+          `{instance="10.42.1.18:5055", service="nexuspay-worker", query="${expr}"} => ${(120 + Math.random() * 400).toFixed(2)}`,
+          `{instance="10.42.1.14:8080", service="nexuspay-gateway", query="${expr}"} => ${(850 + Math.random() * 600).toFixed(2)}`,
+          `{instance="10.42.1.15:6379", service="nexuspay-redis", query="${expr}"} => ${(40 + Math.random() * 90).toFixed(2)}`
+        ]
+      };
+      autoOpenCliForTask(
+        'int-prom-01',
+        `infrapilot prometheus query "${expr}"`,
+        [
+          `[Prometheus TSDB] Executing instant query: ${expr}`,
+          ...STATE.promQueryLast.results,
+          `✔ Query completed in 2.3ms (3 time-series returned)`
+        ],
+        `Executed PromQL query: ${expr}`,
+        'shell'
+      );
+      renderCurrentPage();
+    }
+
+    function syncGrafanaDashboard(uid) {
+      const d = STATE.grafanaDashboards.find(x => x.uid === uid) || STATE.grafanaDashboards[0];
+      STATE.selectedGrafanaUid = d.uid;
+      autoOpenCliForTask(
+        'int-grafana-01',
+        `infrapilot grafana sync --uid ${d.uid}`,
+        [
+          `[Grafana HTTP API] GET ${d.url}/api/dashboards/uid/${d.uid} -> HTTP 200 OK`,
+          `[Grafana Panel Sync] Title: "${d.title}" | Throughput: ${d.rps} | Latency/Load: ${d.p99}`,
+          `✔ Synced live Grafana panel telemetry into InfraPilot Control Plane.`
+        ],
+        `Synced Grafana dashboard ${d.title} (${d.uid})`,
+        'shell'
+      );
+      renderCurrentPage();
+      showToast(`Opened & synced Grafana Dashboard: ${d.title}`, 'var(--success)');
+    }
+
+    function createGrafanaDashboard() {
+      const title = document.getElementById('new-graf-title').value.trim();
+      const folder = document.getElementById('new-graf-folder').value.trim() || 'Custom Observability';
+      if (!title) {
+        showToast('Please enter a Grafana Dashboard Title.', 'var(--warning)');
+        return;
+      }
+      const uid = `graf-${Date.now().toString().slice(-4)}`;
+      const newDash = {
+        uid,
+        title,
+        folder,
+        url: `http://grafana.internal:3000/d/${uid}`,
+        rps: '920 req/s',
+        p99: '4.8 ms',
+        errRate: '0.00%',
+        status: 'HEALTHY'
+      };
+      STATE.grafanaDashboards.unshift(newDash);
+      STATE.selectedGrafanaUid = uid;
+      autoOpenCliForTask(
+        'int-grafana-01',
+        `infrapilot grafana create "${title}" --folder "${folder}"`,
+        [
+          `[Grafana API] POST /api/dashboards/db (uid=${uid}, folder="${folder}")`,
+          `✔ Created Grafana dashboard "${title}" at ${newDash.url}`
+        ],
+        `Created Grafana dashboard ${title}`,
+        'shell'
+      );
+      renderCurrentPage();
+      showToast(`Created Grafana Dashboard: ${title}`, 'var(--success)');
+    }
+
+    // TERRAFORM & AWS ACTIONS
+    function runTerraformAction(wsId, action) {
+      const ws = STATE.terraformWorkspaces.find(w => w.id === wsId) || STATE.terraformWorkspaces[0];
+      let lines = [];
+      if (action === 'plan') {
+        ws.lastRun = `Planned at ${timeNow()}`;
+        lines = [
+          `[Terraform Cloud] Initializing workspace "${ws.name}" (repo: ${ws.repo})...`,
+          `[Terraform Plan] Refreshing state for ${ws.resources} AWS/K8s resources...`,
+          `  + aws_cloudwatch_metric_alarm.slo_burn_rate (create)`,
+          `  ~ aws_autoscaling_group.worker_nodes (desired_capacity: 3 -> 4)`,
+          `Plan: 1 to add, 1 to change, 0 to destroy.`
+        ];
+      } else if (action === 'apply') {
+        if (ws.locked && STATE.currentRole !== 'SUPER_ADMIN') {
+          showToast('Workspace is locked by Super Admin! Switch role to Super Admin or unlock.', 'var(--danger)');
+          return;
+        }
+        ws.resources += 1;
+        ws.drift = 'CLEAN (0 drifted)';
+        ws.lastRun = `Applied at ${timeNow()}`;
+        lines = [
+          `[Terraform Apply] Applying plan on workspace "${ws.name}"...`,
+          `aws_autoscaling_group.worker_nodes: Modifying... [id=prod-worker-asg]`,
+          `aws_cloudwatch_metric_alarm.slo_burn_rate: Creating...Complete after 2s`,
+          `✔ Apply complete! Resources: 1 added, 1 changed, 0 destroyed (Total=${ws.resources}).`
+        ];
+      } else if (action === 'drift') {
+        ws.drift = 'CLEAN (Verified just now)';
+        lines = [
+          `[Terraform Drift Detector] Comparing live AWS/K8s API state against ${ws.name}.tfstate...`,
+          `✔ Zero state drift detected across all ${ws.resources} managed resources.`
+        ];
+      } else if (action === 'lock') {
+        ws.locked = !ws.locked;
+        lines = [`[Terraform State Lock] Workspace "${ws.name}" lock state -> ${ws.locked ? 'LOCKED' : 'UNLOCKED'}`];
+      }
+      autoOpenCliForTask(
+        'int-tf-01',
+        `infrapilot terraform ${action} --workspace ${ws.name}`,
+        lines,
+        `Terraform ${action} on workspace ${ws.name}`,
+        'shell'
+      );
+      renderCurrentPage();
+      showToast(`Terraform ${action.toUpperCase()} completed on ${ws.name}`, 'var(--success)');
+    }
+
+    function runAwsCloudAction(action) {
+      let lines = [];
+      if (action === 'scale_asg') {
+        const ec2 = STATE.workloads.find(w => w.id === 'res-aws-ec2');
+        if (ec2) ec2.replicas = ec2.replicas === 'ASG 3/6' ? 'ASG 5/6' : 'ASG 3/6';
+        lines = [
+          `[AWS AutoScaling API] SetDesiredCapacity on ASG prod-worker-asg -> ${ec2 ? ec2.replicas : '5/6'}`,
+          `✔ New EC2 instances launched in us-east-1a and us-east-1b.`
+        ];
+      } else if (action === 'rds_failover') {
+        lines = [
+          `[AWS RDS Multi-AZ] Initiating synchronous failover for prod-orders-postgres-primary (us-east-1a -> us-east-1b)...`,
+          `[AWS RDS Multi-AZ] Standby promoted to Primary in 4.1s; DNS CNAME updated.`,
+          `✔ Database failover complete with zero packet loss.`
+        ];
+      }
+      autoOpenCliForTask('int-aws-01', `infrapilot aws ${action} --region us-east-1`, lines, `Executed AWS action: ${action}`, 'shell');
+      renderCurrentPage();
+      showToast(`Executed AWS Cloud action: ${action}`, 'var(--success)');
+    }
+
+    // SUPER ADMIN RBAC ACTIONS
+    function toggleUserPermission(userId, permKey) {
+      if (STATE.currentRole !== 'SUPER_ADMIN') {
+        showToast('Access Denied: Only Super Admin can modify user permissions! Switch Role in top header.', 'var(--danger)');
+        return;
+      }
+      const u = STATE.rbacUsers.find(x => x.id === userId);
+      if (!u) return;
+      const idx = u.permissions.indexOf(permKey);
+      if (idx >= 0) u.permissions.splice(idx, 1);
+      else u.permissions.push(permKey);
+
+      autoOpenCliForTask(
+        'int-k8s-01',
+        `infrapilot users grant "${u.email}" --role ${u.role} --permissions "${u.permissions.join(',')}"`,
+        [
+          `[Super Admin RBAC Engine] Updated permission matrix for ${u.name} (${u.email})`,
+          `[RBAC Audit] Role=${u.role} | Granted Scopes=[${u.permissions.join(', ')}]`,
+          `✔ Changes propagated immediately to API Gateway & CLI token store.`
+        ],
+        `Super Admin updated permissions for ${u.email}`,
+        'shell'
+      );
+      renderCurrentPage();
+    }
+
+    function changeUserRoleAssignment(userId, newRole) {
+      if (STATE.currentRole !== 'SUPER_ADMIN') {
+        showToast('Access Denied: Only Super Admin can change user roles!', 'var(--danger)');
+        renderCurrentPage();
+        return;
+      }
+      const u = STATE.rbacUsers.find(x => x.id === userId);
+      if (!u) return;
+      u.role = newRole;
+      autoOpenCliForTask(
+        'int-k8s-01',
+        `infrapilot users grant "${u.email}" --role ${newRole}`,
+        [`[Super Admin RBAC] Promoted/updated ${u.name} (${u.email}) -> Role=${newRole}`],
+        `Updated role for ${u.email} to ${newRole}`,
+        'shell'
+      );
+      renderCurrentPage();
+      showToast(`Updated ${u.name}'s role to ${newRole}`, 'var(--success)');
+    }
+
+    function addNewRbacUser() {
+      if (STATE.currentRole !== 'SUPER_ADMIN') {
+        showToast('Only Super Admin can invite or create users!', 'var(--danger)');
+        return;
+      }
+      const name = document.getElementById('new-usr-name').value.trim();
+      const email = document.getElementById('new-usr-email').value.trim();
+      const role = document.getElementById('new-usr-role').value;
+      const title = document.getElementById('new-usr-title').value.trim() || 'DevOps / Software Engineer';
+      if (!name || !email) {
+        showToast('Please enter both Name and Email.', 'var(--warning)');
+        return;
+      }
+      const defaultPerms = role === 'SUPER_ADMIN'
+        ? ['docker_exec', 'k8s_scale', 'jenkins_admin', 'ansible_run', 'terraform_apply', 'grafana_edit', 'prod_approvals', 'rbac_manage']
+        : (role === 'ADMIN'
+            ? ['docker_exec', 'k8s_scale', 'jenkins_admin', 'ansible_run', 'terraform_apply', 'grafana_edit']
+            : ['docker_exec', 'jenkins_admin', 'grafana_edit']);
+
+      STATE.rbacUsers.push({
+        id: `usr-${Date.now().toString().slice(-3)}`,
+        name,
+        email,
+        role,
+        title,
+        permissions: defaultPerms
+      });
+
+      autoOpenCliForTask(
+        'int-k8s-01',
+        `infrapilot users grant "${email}" --role ${role} --permissions "${defaultPerms.join(',')}"`,
+        [
+          `[Super Admin RBAC] Created user account ${name} <${email}> with role=${role}`,
+          `[RBAC Scopes] Granted: ${defaultPerms.join(', ')}`
+        ],
+        `Added new ${role} user: ${email}`,
+        'shell'
+      );
+      renderCurrentPage();
+      showToast(`Added user ${name} (${role})`, 'var(--success)');
+    }
+
+    // INCIDENTS & CHAOS
+    function createCustomIncident() {
+      const title = document.getElementById('new-inc-title').value.trim();
+      const severity = document.getElementById('new-inc-severity').value;
+      const targetId = document.getElementById('new-inc-target').value;
+      const summary = document.getElementById('new-inc-summary').value.trim() || 'Anomaly reported by operator for investigation.';
+      if (!title) {
+        showToast('Please enter an Incident Title.', 'var(--warning)');
+        return;
+      }
+      const w = STATE.workloads.find(x => x.id === targetId);
+      const incId = `INC-${Math.floor(1050 + Math.random() * 8900)}`;
+      STATE.incidents.unshift({
+        id: incId,
+        title,
+        severity,
+        status: 'OPEN',
+        targetId,
+        service: w ? w.name : targetId,
+        summary,
+        createdAt: 'Just now'
+      });
+      if (w && severity === 'CRITICAL') w.status = 'DEGRADED';
+      autoOpenCliForTask(
+        targetId,
+        `infrapilot incidents create "${title}" --severity ${severity} --target ${targetId}`,
+        [
+          `[Alertmanager] Created incident ${incId} (${severity}) on ${w ? w.name : targetId}`,
+          `[Summary] ${summary}`
+        ],
+        `${incId}: ${title}`,
+        'logs'
+      );
+      renderCurrentPage();
+      showToast(`Created Incident ${incId}: ${title}`, 'var(--danger)');
+    }
+
+    function updateIncidentState(incId, newState) {
+      const inc = STATE.incidents.find(x => x.id === incId);
+      if (!inc) return;
+      inc.status = newState;
+      if (newState === 'RESOLVED') {
+        const w = STATE.workloads.find(x => x.id === inc.targetId);
+        if (w) { w.status = 'RUNNING'; w.cpu = 16.4; }
+      }
+      autoOpenCliForTask(
+        inc.targetId,
+        `infrapilot incidents ${newState === 'RESOLVED' ? 'resolve' : 'ack'} ${inc.id}`,
+        [
+          `[Incident Response] Incident ${inc.id} (${inc.title}) transitioned to ${newState}`,
+          newState === 'RESOLVED' ? `✔ Target workload ${inc.service} verified RUNNING and healthy.` : `✔ Assigned to on-call engineer.`
+        ],
+        `Incident ${inc.id} marked ${newState}`,
+        'shell'
+      );
+      renderCurrentPage();
+      showToast(`Incident ${incId} marked as ${newState}`, 'var(--success)');
+    }
+
+    function injectChaosFault(scenario) {
+      STATE.demoApp.status = 'DEGRADED';
+      STATE.demoApp.workerCpu = 98.4;
+      STATE.demoApp.errorRate = 0.45;
+      const w = STATE.workloads.find(x => x.id === 'res-nexus-worker');
+      if (w) { w.cpu = 98.4; w.status = 'DEGRADED'; }
+
+      const incId = `INC-${Math.floor(2000 + Math.random() * 7000)}`;
+      STATE.incidents.unshift({
+        id: incId,
+        title: 'NexusPay Worker CPU Saturation (98.4%) & Queue Deadlock',
+        severity: 'CRITICAL',
+        status: 'OPEN',
+        targetId: 'res-nexus-worker',
+        service: 'nexuspay-payment-worker-01',
+        summary: `Simulated fault (${scenario}): worker threads deadlocked under high settlement load.`,
+        createdAt: 'Just now'
+      });
+      autoOpenCliForTask(
+        'res-nexus-worker',
+        `infrapilot demo chaos --scenario ${scenario}`,
+        [
+          `[Chaos Injector] POST http://127.0.0.1:5055/api/chaos/inject (scenario=${scenario})`,
+          `[CRITICAL] nexuspay-payment-worker-01 CPU spiked to 98.4%; HTTP 500 error rate at 45%`,
+          `[Alertmanager] Fired P1 Incident ${incId} -> Click "Auto-Heal" to remediate!`
+        ],
+        `CRITICAL: Chaos fault ${scenario} injected (${incId})`,
+        'logs'
+      );
+      renderCurrentPage();
+      showToast(`Simulated Chaos Fault (${incId})`, 'var(--danger)');
+    }
+
+    function healAllSystems(openDrawer = true) {
+      STATE.demoApp.status = 'HEALTHY';
+      STATE.demoApp.connected = true;
+      STATE.demoApp.workerCpu = 16.4;
+      STATE.demoApp.redisMemMb = 118.0;
+      STATE.demoApp.errorRate = 0.0;
+      STATE.workloads.forEach(w => {
+        w.status = 'RUNNING';
+        if (w.id === 'res-nexus-worker') w.cpu = 16.4;
+        if (w.id === 'res-nexus-redis') w.memMb = 118;
+      });
+      STATE.incidents.forEach(i => { i.status = 'RESOLVED'; });
+      if (openDrawer) {
+        autoOpenCliForTask(
+          'res-nexus-worker',
+          'infrapilot demo heal',
+          [
+            '[Closed-Loop Remediation] Dispatching SDK action app_restart_workers -> http://127.0.0.1:5055/api/remediate/heal',
+            '[Closed-Loop Remediation] Dispatching Redis cache flush -> memory normalized to 118 MB',
+            '✔ All containers RUNNING (CPU 16.4%, Error Rate 0.0%). All open incidents RESOLVED.'
+          ],
+          'Closed-loop SDK auto-remediation completed',
+          'shell'
+        );
+        showToast('All workloads & incidents auto-healed!', 'var(--success)');
+      } else {
+        syncNavigationBadges();
+      }
+      renderCurrentPage();
+    }
+
+    // ============================================================================
+    // PAGE RENDERERS
+    // ============================================================================
+    function renderCurrentPage() {
+      const root = document.getElementById('main-content');
+      if (!root) return;
+
+      let html = '';
+      if (STATE.currentPage === 'overview') html = renderOverviewPage();
+      else if (STATE.currentPage === 'workloads') html = renderWorkloadsPage();
+      else if (STATE.currentPage === 'tools') html = renderToolsPage();
+      else if (STATE.currentPage === 'incidents') html = renderIncidentsPage();
+      else if (STATE.currentPage === 'observability') html = renderObservabilityPage();
+      else if (STATE.currentPage === 'terraform') html = renderTerraformPage();
+      else if (STATE.currentPage === 'ansible') html = renderAnsiblePage();
+      else if (STATE.currentPage === 'jenkins') html = renderJenkinsPage();
+      else if (STATE.currentPage === 'copilot') html = renderCopilotPage();
+      else if (STATE.currentPage === 'users') html = renderUsersRbacPage();
+      else if (STATE.currentPage === 'console') html = renderConsolePage();
+      else if (STATE.currentPage === 'docs') html = renderDocsPage();
+
+      root.innerHTML = `<div class="animate-view">${html}</div>`;
+    }
+
+    // 1. OVERVIEW PAGE
+    function renderOverviewPage() {
+      const openInc = STATE.incidents.filter(i => i.status !== 'RESOLVED').length;
+      const runningWl = STATE.workloads.filter(w => w.status === 'RUNNING').length;
+
+      return `
+        <div class="grid-4">
+          <div class="card interactive" onclick="navigateTo('workloads')" style="cursor:pointer;">
+            <div class="card-subtitle">WORKLOADS &amp; CONTAINERS</div>
+            <div class="stat-value">${runningWl} / ${STATE.workloads.length}</div>
+            <span class="badge badge-success">● Manage Containers &rarr;</span>
+          </div>
+
+          <div class="card interactive" onclick="navigateTo('tools')" style="cursor:pointer;">
+            <div class="card-subtitle">CONNECTED DEVOPS TOOLS</div>
+            <div class="stat-value">${STATE.tools.length} Tools</div>
+            <span class="badge badge-info">Connect &amp; Control Tools &rarr;</span>
+          </div>
+
+          <div class="card interactive" onclick="navigateTo('observability')" style="cursor:pointer;">
+            <div class="card-subtitle">GRAFANA &amp; PROMETHEUS</div>
+            <div class="stat-value">${STATE.grafanaDashboards.length} Dashboards</div>
+            <span class="badge badge-purple">Open Dashboards &amp; PromQL &rarr;</span>
+          </div>
+
+          <div class="card interactive" onclick="navigateTo('incidents')" style="cursor:pointer;">
+            <div class="card-subtitle">ACTIVE INCIDENTS</div>
+            <div class="stat-value" style="color:${openInc > 0 ? 'var(--danger)' : 'var(--success)'};">${openInc} Open</div>
+            <span class="badge ${openInc > 0 ? 'badge-danger' : 'badge-success'}">${openInc > 0 ? 'Investigate &amp; Heal &rarr;' : 'Zero Critical Alerts'}</span>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <!-- Dedicated Tool Control Launchpad -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">All DevOps Tools — Direct Control Centers</div>
+                <div class="card-subtitle">Every connected tool has a dedicated control page and auto-streaming CLI logs</div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(195px, 1fr));gap:10px;">
+              <button class="btn" style="justify-content:flex-start;padding:11px;" onclick="navigateTo('observability')">
+                <span>📈</span> <span><strong>Grafana &amp; Prometheus</strong><br><small style="color:var(--text-muted);">Dashboards, SLOs &amp; PromQL</small></span>
+              </button>
+              <button class="btn" style="justify-content:flex-start;padding:11px;" onclick="navigateTo('terraform')">
+                <span>🏗️</span> <span><strong>Terraform &amp; AWS IaC</strong><br><small style="color:var(--text-muted);">Plan, Apply, Drift &amp; ASG</small></span>
+              </button>
+              <button class="btn" style="justify-content:flex-start;padding:11px;" onclick="navigateTo('ansible')">
+                <span>⚡</span> <span><strong>Ansible Automations</strong><br><small style="color:var(--text-muted);">Create &amp; Run Playbooks</small></span>
+              </button>
+              <button class="btn" style="justify-content:flex-start;padding:11px;" onclick="navigateTo('jenkins')">
+                <span>🚀</span> <span><strong>Jenkins CI/CD</strong><br><small style="color:var(--text-muted);">Create &amp; Trigger Pipelines</small></span>
+              </button>
+              <button class="btn" style="justify-content:flex-start;padding:11px;" onclick="navigateTo('workloads')">
+                <span>🐳</span> <span><strong>Docker &amp; Kubernetes</strong><br><small style="color:var(--text-muted);">Scale, Restart &amp; Exec CLI</small></span>
+              </button>
+              <button class="btn" style="justify-content:flex-start;padding:11px;" onclick="navigateTo('copilot')">
+                <span>🤖</span> <span><strong>GitHub Copilot SRE</strong><br><small style="color:var(--text-muted);">AI Log RCA &amp; Guardrails</small></span>
+              </button>
+              <button class="btn" style="justify-content:flex-start;padding:11px;" onclick="navigateTo('users')">
+                <span>🔐</span> <span><strong>Users &amp; RBAC Access</strong><br><small style="color:var(--text-muted);">Super Admin Permissions</small></span>
+              </button>
+              <button class="btn" style="justify-content:flex-start;padding:11px;" onclick="navigateTo('docs')">
+                <span>📖</span> <span><strong>CLI &amp; SDK Docs</strong><br><small style="color:var(--text-muted);">All infrapilot Commands</small></span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Live Connected Demo App (NexusPay) Card -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Connected Application: NexusPay Gateway</div>
+                <div class="card-subtitle">Connected via <code class="mono">InfraPilotToolAgent</code> Python SDK (:5055)</div>
+              </div>
+              <span class="badge ${STATE.demoApp.connected && STATE.demoApp.status === 'HEALTHY' ? 'badge-success' : 'badge-danger'}">
+                <span class="${STATE.demoApp.connected ? 'status-dot-green' : 'status-dot-red'}"></span>
+                ${STATE.demoApp.connected ? STATE.demoApp.status : 'DISCONNECTED'}
+              </span>
+            </div>
+
+            <div class="grid-3" style="margin-bottom:14px;">
+              <div style="padding:10px;background:var(--bg-elevated);border-radius:8px;">
+                <div style="font-size:11.5px;color:var(--text-muted);">Worker CPU</div>
+                <div style="font-size:18px;font-weight:700;">${STATE.demoApp.workerCpu.toFixed(1)}%</div>
+              </div>
+              <div style="padding:10px;background:var(--bg-elevated);border-radius:8px;">
+                <div style="font-size:11.5px;color:var(--text-muted);">Redis Cache</div>
+                <div style="font-size:18px;font-weight:700;">${STATE.demoApp.redisMemMb.toFixed(0)} MB</div>
+              </div>
+              <div style="padding:10px;background:var(--bg-elevated);border-radius:8px;">
+                <div style="font-size:11.5px;color:var(--text-muted);">Release / Pods</div>
+                <div style="font-size:18px;font-weight:700;">${STATE.demoApp.version} (${STATE.demoApp.replicas})</div>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <button class="btn btn-sm btn-primary" onclick="executeShellCommand('res-nexus-worker', 'ps aux')">&gt;_ Run ps aux in Worker</button>
+              <button class="btn btn-sm" onclick="openToolLogsInDrawer('int-nexus-sdk')">📜 View App SDK Logs</button>
+              <button class="btn btn-sm btn-danger" onclick="injectChaosFault('worker_pool_exhaustion')">🔥 Simulate CPU Fault</button>
+              <button class="btn btn-sm btn-success" onclick="healAllSystems()">✨ Auto-Heal via SDK</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 2. WORKLOADS, CONTAINERS & PODS PAGE
+    function renderWorkloadsPage() {
+      const cardsHtml = STATE.workloads.map(w => {
+        const memPct = Math.min(100, Math.round((w.memMb / w.memLimitMb) * 100));
+        return `
+          <div class="card interactive">
+            <div class="card-header">
+              <div>
+                <div class="card-title">${escapeHtml(w.name)}</div>
+                <div class="card-subtitle">${escapeHtml(w.role)} &bull; <span class="mono">${escapeHtml(w.provider)}</span></div>
+              </div>
+              <span class="badge ${w.status === 'RUNNING' ? 'badge-success' : 'badge-danger'}">${escapeHtml(w.status)}</span>
+            </div>
+
+            <div class="mono" style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">
+              <div>Image: ${escapeHtml(w.image)}</div>
+              <div>Replicas: <strong>${escapeHtml(w.replicas)}</strong> &bull; Ports: ${escapeHtml(w.ports)}</div>
+            </div>
+
+            <div style="margin-bottom:10px;">
+              <div style="display:flex;justify-content:space-between;font-size:12px;">
+                <span>CPU Utilization</span>
+                <span class="mono">${w.cpu.toFixed(1)}%</span>
+              </div>
+              <div class="progress-track"><div class="progress-fill" style="width:${Math.min(100, w.cpu)}%;"></div></div>
+            </div>
+
+            <div style="margin-bottom:14px;">
+              <div style="display:flex;justify-content:space-between;font-size:12px;">
+                <span>Memory Usage</span>
+                <span class="mono">${w.memMb} / ${w.memLimitMb} MB (${memPct}%)</span>
+              </div>
+              <div class="progress-track"><div class="progress-fill" style="width:${memPct}%;"></div></div>
+            </div>
+
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              <button class="btn btn-sm btn-primary" onclick="executeShellCommand('${w.id}', 'ps aux')">&gt;_ Exec CLI</button>
+              <button class="btn btn-sm" onclick="openToolLogsInDrawer('${w.id}')">📜 Live Logs</button>
+              <button class="btn btn-sm btn-success" onclick="controlContainer('${w.id}', 'restart')">Restart</button>
+              <button class="btn btn-sm btn-purple" onclick="controlContainer('${w.id}', 'scale')">Scale Replicas</button>
+              <button class="btn btn-sm btn-danger" onclick="controlContainer('${w.id}', 'toggle')">${w.status === 'STOPPED' ? 'Start' : 'Stop'}</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Deploy / Register New Container or Workload</div>
+              <div class="card-subtitle">Deploying or scaling any container automatically opens the CLI drawer with live execution output</div>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div>
+              <label class="form-label">Container / Service Name</label>
+              <input id="new-wl-name" class="input" placeholder="e.g. billing-worker-02" />
+            </div>
+            <div>
+              <label class="form-label">Runtime Provider</label>
+              <select id="new-wl-provider" class="select">
+                <option value="Docker">Docker Engine</option>
+                <option value="Kubernetes">Kubernetes Cluster</option>
+                <option value="AWS">AWS EC2 / ECS</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Container Image</label>
+              <input id="new-wl-image" class="input" placeholder="ghcr.io/infrapilot/billing:v1.2" />
+            </div>
+            <div>
+              <label class="form-label">Ports</label>
+              <input id="new-wl-ports" class="input" placeholder="8080:8080" />
+            </div>
+            <button class="btn btn-primary" onclick="deployNewWorkload()">+ Deploy Container</button>
+          </div>
+        </div>
+
+        <div class="grid-3">
+          ${cardsHtml}
+        </div>
+      `;
+    }
+
+    // 3. CONNECT & MANAGE TOOLS PAGE (With Direct Control Center & Real Logs Buttons!)
+    function renderToolsPage() {
+      const toolCards = STATE.tools.map(t => {
+        const logCount = (STATE.logsByTarget[t.id] || []).length;
+        return `
+          <div class="card interactive">
+            <div class="card-header">
+              <div>
+                <div class="card-title">${escapeHtml(t.name)}</div>
+                <div class="card-subtitle">${escapeHtml(t.provider)} &bull; <span class="mono">${escapeHtml(t.id)}</span></div>
+              </div>
+              <span class="badge ${t.status === 'CONNECTED' ? 'badge-success' : 'badge-danger'}">
+                <span class="${t.status === 'CONNECTED' ? 'status-dot-green' : 'status-dot-red'}"></span>
+                ${escapeHtml(t.status)}
+              </span>
+            </div>
+            <p style="font-size:13px;color:var(--text-secondary);margin-bottom:10px;">${escapeHtml(t.description)}</p>
+            <div class="mono" style="font-size:12px;padding:8px 10px;background:var(--bg-elevated);border-radius:6px;margin-bottom:12px;color:var(--primary);">
+              Endpoint: ${escapeHtml(t.endpoint)} (${escapeHtml(t.latency)})
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              <button class="btn btn-sm btn-primary" onclick="navigateTo('${t.controlPage || 'overview'}')">⚙️ Open Tool Controls</button>
+              <button class="btn btn-sm btn-purple" onclick="openToolLogsInDrawer('${t.id}')">📜 View Logs (${logCount})</button>
+              <button class="btn btn-sm btn-success" onclick="testToolConnection('${t.id}')">⚡ Probe API</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Connect a New DevOps Tool or Microservice Endpoint</div>
+              <div class="card-subtitle">Register Grafana, Prometheus, Terraform, Docker, Kubernetes, Jenkins, GitHub Copilot, Ansible, AWS, or your own SDK endpoint</div>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div>
+              <label class="form-label">Tool Display Name</label>
+              <input id="new-tool-name" class="input" placeholder="e.g. Grafana Prod Cluster" />
+            </div>
+            <div>
+              <label class="form-label">Provider Type</label>
+              <select id="new-tool-provider" class="select">
+                <option value="Grafana">Grafana Dashboards</option>
+                <option value="Prometheus">Prometheus TSDB</option>
+                <option value="Terraform">Terraform Cloud</option>
+                <option value="Jenkins">Jenkins CI/CD</option>
+                <option value="Ansible">Ansible Automation</option>
+                <option value="Docker">Docker Engine</option>
+                <option value="Kubernetes">Kubernetes Cluster</option>
+                <option value="GitHub Copilot">GitHub Copilot</option>
+                <option value="AWS">AWS Cloud</option>
+                <option value="Custom SDK">Custom App SDK</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Endpoint URL / Socket</label>
+              <input id="new-tool-endpoint" class="input" placeholder="http://grafana.internal:3000" />
+            </div>
+            <div>
+              <label class="form-label">Description / Scope</label>
+              <input id="new-tool-desc" class="input" placeholder="Production observability &amp; SLO boards" />
+            </div>
+            <button class="btn btn-primary" onclick="connectNewToolEndpoint()">+ Connect Endpoint</button>
+          </div>
+        </div>
+
+        <div class="grid-3">
+          ${toolCards}
+        </div>
+      `;
+    }
+
+    // 4. INCIDENTS & ALERTS CENTER PAGE
+    function renderIncidentsPage() {
+      const filtered = STATE.incidents.filter(i => STATE.incidentFilter === 'ALL' || i.status === STATE.incidentFilter);
+
+      const rows = filtered.map(inc => `
+        <tr>
+          <td class="mono" style="font-weight:700;color:var(--text-main);">${escapeHtml(inc.id)}</td>
+          <td>
+            <div style="font-weight:700;color:var(--text-main);">${escapeHtml(inc.title)}</div>
+            <div style="font-size:12px;color:var(--text-muted);">${escapeHtml(inc.summary)}</div>
+          </td>
+          <td><span class="badge ${inc.severity === 'CRITICAL' ? 'badge-danger' : 'badge-warning'}">${escapeHtml(inc.severity)}</span></td>
+          <td class="mono">${escapeHtml(inc.service)}</td>
+          <td><span class="badge ${inc.status === 'RESOLVED' ? 'badge-success' : (inc.status === 'ACKNOWLEDGED' ? 'badge-info' : 'badge-danger')}">${escapeHtml(inc.status)}</span></td>
+          <td>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              ${inc.status === 'OPEN' ? `<button class="btn btn-sm" onclick="updateIncidentState('${inc.id}', 'ACKNOWLEDGED')">Acknowledge</button>` : ''}
+              <button class="btn btn-sm btn-purple" onclick="navigateTo('copilot')">🤖 Copilot RCA</button>
+              <button class="btn btn-sm btn-primary" onclick="openToolLogsInDrawer('${inc.targetId}')">📜 Logs</button>
+              ${inc.status !== 'RESOLVED' ? `<button class="btn btn-sm btn-success" onclick="updateIncidentState('${inc.id}', 'RESOLVED')">Resolve &amp; Heal</button>` : ''}
+            </div>
+          </td>
+        </tr>
+      `).join('') || '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted);">No incidents match the selected filter.</td></tr>';
+
+      return `
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Report or Simulate an Incident</div>
+              <div class="card-subtitle">Create an operational incident to trigger alert routing, live CLI log streaming, and automated playbooks</div>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div>
+              <label class="form-label">Incident Title</label>
+              <input id="new-inc-title" class="input" placeholder="e.g. High Latency on Payment Settlement" />
+            </div>
+            <div>
+              <label class="form-label">Severity</label>
+              <select id="new-inc-severity" class="select">
+                <option value="CRITICAL">CRITICAL (P1)</option>
+                <option value="WARNING">WARNING (P2)</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Affected Container / Service</label>
+              <select id="new-inc-target" class="select">
+                ${STATE.workloads.map(w => `<option value="${w.id}">${escapeHtml(w.name)}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Symptom / Summary</label>
+              <input id="new-inc-summary" class="input" placeholder="p99 latency spiked above 1200ms" />
+            </div>
+            <button class="btn btn-danger" onclick="createCustomIncident()">+ Create Incident</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Active &amp; Historical Incidents (${filtered.length})</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              <button class="btn btn-sm ${STATE.incidentFilter === 'ALL' ? 'btn-primary' : ''}" onclick="STATE.incidentFilter='ALL'; renderCurrentPage();">All</button>
+              <button class="btn btn-sm ${STATE.incidentFilter === 'OPEN' ? 'btn-primary' : ''}" onclick="STATE.incidentFilter='OPEN'; renderCurrentPage();">Open</button>
+              <button class="btn btn-sm ${STATE.incidentFilter === 'ACKNOWLEDGED' ? 'btn-primary' : ''}" onclick="STATE.incidentFilter='ACKNOWLEDGED'; renderCurrentPage();">Acknowledged</button>
+              <button class="btn btn-sm ${STATE.incidentFilter === 'RESOLVED' ? 'btn-primary' : ''}" onclick="STATE.incidentFilter='RESOLVED'; renderCurrentPage();">Resolved</button>
+              <button class="btn btn-sm btn-success" onclick="healAllSystems()">Resolve &amp; Heal All</button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="clean-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Incident Title &amp; Summary</th>
+                  <th>Severity</th>
+                  <th>Target Workload</th>
+                  <th>Status</th>
+                  <th>Remediation Controls</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    // 5. GRAFANA DASHBOARDS & PROMETHEUS TSDB CONTROL PAGE
+    function renderObservabilityPage() {
+      const selGraf = STATE.grafanaDashboards.find(d => d.uid === STATE.selectedGrafanaUid) || STATE.grafanaDashboards[0];
+
+      const grafCards = STATE.grafanaDashboards.map(d => `
+        <div class="card interactive" style="border-color:${d.uid === selGraf.uid ? 'var(--primary)' : 'var(--border)'};">
+          <div class="card-header">
+            <div>
+              <div class="card-title">📊 ${escapeHtml(d.title)}</div>
+              <div class="card-subtitle">Folder: ${escapeHtml(d.folder)} &bull; UID: <span class="mono">${escapeHtml(d.uid)}</span></div>
+            </div>
+            <span class="badge badge-success">● ${escapeHtml(d.status)}</span>
+          </div>
+          <div class="grid-3" style="margin-bottom:12px;">
+            <div style="padding:8px;background:var(--bg-elevated);border-radius:8px;">
+              <div style="font-size:11px;color:var(--text-muted);">Throughput / Nodes</div>
+              <div style="font-size:15px;font-weight:700;">${escapeHtml(d.rps)}</div>
+            </div>
+            <div style="padding:8px;background:var(--bg-elevated);border-radius:8px;">
+              <div style="font-size:11px;color:var(--text-muted);">p99 / Load</div>
+              <div style="font-size:15px;font-weight:700;">${escapeHtml(d.p99)}</div>
+            </div>
+            <div style="padding:8px;background:var(--bg-elevated);border-radius:8px;">
+              <div style="font-size:11px;color:var(--text-muted);">Error / Cache</div>
+              <div style="font-size:15px;font-weight:700;color:var(--success);">${escapeHtml(d.errRate)}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-sm btn-primary" onclick="syncGrafanaDashboard('${d.uid}')">📈 Sync &amp; Stream Dashboard</button>
+            <button class="btn btn-sm" onclick="openToolLogsInDrawer('int-grafana-01')">📜 Grafana Logs</button>
+          </div>
+        </div>
+      `).join('');
+
+      return `
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Grafana Enterprise Control Center (<code class="mono">int-grafana-01</code> — http://grafana.internal:3000)</div>
+              <div class="card-subtitle">Create new Grafana dashboards, sync live golden-signal panels, or view Grafana server logs</div>
+            </div>
+            <button class="btn btn-sm" onclick="openToolLogsInDrawer('int-grafana-01')">📜 View Grafana Server Logs</button>
+          </div>
+          <div class="form-grid">
+            <div>
+              <label class="form-label">New Grafana Dashboard Title</label>
+              <input id="new-graf-title" class="input" placeholder="e.g. Kafka Consumer Lag &amp; Throughput" />
+            </div>
+            <div>
+              <label class="form-label">Grafana Folder</label>
+              <input id="new-graf-folder" class="input" value="Production Messaging" />
+            </div>
+            <button class="btn btn-primary" onclick="createGrafanaDashboard()">+ Create Grafana Dashboard</button>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          ${grafCards}
+        </div>
+
+        <!-- Prometheus PromQL Query Engine -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Prometheus TSDB &amp; PromQL Query Runner (<code class="mono">int-prom-01</code> — http://prometheus.internal:9090)</div>
+              <div class="card-subtitle">Execute instant PromQL queries and stream time-series vectors directly to the CLI drawer</div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-sm" onclick="openToolLogsInDrawer('int-prom-01')">📜 Prometheus Logs</button>
+              <button class="btn btn-sm btn-success" onclick="autoOpenCliForTask('int-prom-01', 'infrapilot prometheus reload', ['[Prometheus API] POST /-/reload -> HTTP 200 OK', '✔ Reloaded 18 alerting rules and 6 scrape targets.'], 'Reloaded Prometheus configuration')">🔄 Reload Config</button>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+            <button class="btn btn-sm" onclick="runPromQlPreset('rps')">rate(nexuspay_requests_total[5m])</button>
+            <button class="btn btn-sm" onclick="runPromQlPreset('p99')">p99 Latency Quantile</button>
+            <button class="btn btn-sm" onclick="runPromQlQuery('container_memory_working_set_bytes')">Container Memory Bytes</button>
+            <button class="btn btn-sm" onclick="runPromQlQuery('pg_stat_activity_count')">Postgres Active Connections</button>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-bottom:14px;">
+            <input id="promql-input" class="input mono" value="${escapeHtml(STATE.promQueryLast.expr)}" placeholder="Enter PromQL expression..." />
+            <button class="btn btn-primary" onclick="runPromQlQuery()">▶ Run PromQL Query</button>
+          </div>
+
+          <div class="mono" style="background:var(--bg-terminal);color:#34d399;padding:12px 14px;border-radius:10px;font-size:12.5px;line-height:1.6;">
+            ${STATE.promQueryLast.results.map(r => `<div>${escapeHtml(r)}</div>`).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    // 6. TERRAFORM & AWS CLOUD IAC CONTROL PAGE
+    function renderTerraformPage() {
+      const wsRows = STATE.terraformWorkspaces.map(ws => `
+        <tr>
+          <td class="mono" style="font-weight:700;color:var(--text-main);">${escapeHtml(ws.name)}<div style="font-size:11px;color:var(--text-muted);">${escapeHtml(ws.repo)}</div></td>
+          <td class="mono">${escapeHtml(ws.version)}</td>
+          <td class="mono"><strong>${ws.resources}</strong> resources</td>
+          <td><span class="badge badge-success">${escapeHtml(ws.drift)}</span></td>
+          <td><span class="badge ${ws.locked ? 'badge-warning' : 'badge-info'}">${ws.locked ? '🔒 LOCKED' : '🔓 UNLOCKED'}</span></td>
+          <td>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button class="btn btn-sm btn-primary" onclick="runTerraformAction('${ws.id}', 'plan')">▶ Plan</button>
+              <button class="btn btn-sm btn-success" onclick="runTerraformAction('${ws.id}', 'apply')">✔ Apply</button>
+              <button class="btn btn-sm" onclick="runTerraformAction('${ws.id}', 'drift')">🔍 Drift Check</button>
+              <button class="btn btn-sm btn-warning" onclick="runTerraformAction('${ws.id}', 'lock')">${ws.locked ? 'Unlock' : 'Lock'}</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+
+      return `
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Terraform Cloud IaC Workspaces (<code class="mono">int-tf-01</code>)</div>
+              <div class="card-subtitle">Run speculative plans, apply infrastructure changes, detect drift, and manage state locks</div>
+            </div>
+            <button class="btn btn-sm" onclick="openToolLogsInDrawer('int-tf-01')">📜 View Terraform Logs</button>
+          </div>
+
+          <div class="table-wrap">
+            <table class="clean-table">
+              <thead>
+                <tr>
+                  <th>Workspace &amp; VCS Repo</th>
+                  <th>Terraform</th>
+                  <th>Managed State</th>
+                  <th>Drift Status</th>
+                  <th>State Lock</th>
+                  <th>IaC Execution Controls</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${wsRows}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">AWS Cloud Production Controls (<code class="mono">int-aws-01</code> — us-east-1)</div>
+              <div class="card-subtitle">Direct operations for EC2 Auto-Scaling Groups and RDS PostgreSQL Multi-AZ clusters</div>
+            </div>
+            <button class="btn btn-sm" onclick="openToolLogsInDrawer('int-aws-01')">📜 View AWS CloudWatch Logs</button>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="runAwsCloudAction('scale_asg')">⚡ Scale EC2 Worker ASG Capacity</button>
+            <button class="btn btn-warning" onclick="runAwsCloudAction('rds_failover')">🔄 Trigger RDS Multi-AZ Failover Test</button>
+            <button class="btn" onclick="openToolLogsInDrawer('res-aws-rds')">📜 View RDS Postgres Logs</button>
+            <button class="btn" onclick="openToolLogsInDrawer('res-aws-ec2')">📜 View EC2 Node Logs</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // 7. ANSIBLE & AUTOMATIONS PAGE
+    function renderAnsiblePage() {
+      const pbCards = STATE.automations.map(pb => `
+        <div class="card interactive">
+          <div class="card-header">
+            <div>
+              <div class="card-title">${escapeHtml(pb.name)}</div>
+              <div class="card-subtitle">${escapeHtml(pb.provider)} &bull; Target: <span class="mono">${escapeHtml(pb.target)}</span></div>
+            </div>
+            <span class="badge ${pb.risk === 'HIGH' ? 'badge-danger' : 'badge-success'}">Risk: ${escapeHtml(pb.risk)}</span>
+          </div>
+
+          <div class="mono" style="font-size:12px;padding:8px 10px;background:var(--bg-elevated);border-radius:6px;margin-bottom:12px;">
+            Playbook / Action: ${escapeHtml(pb.playbookFile)}
+          </div>
+
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+            ${pb.steps.map((s, idx) => `<span class="badge badge-info">${idx + 1}. ${escapeHtml(s)}</span>`).join('')}
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <span style="font-size:12px;color:var(--text-muted);">Status: <strong>${escapeHtml(pb.lastRun)}</strong></span>
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-sm" onclick="openToolLogsInDrawer('int-ansible-01')">📜 Ansible Logs</button>
+              <button class="btn btn-sm btn-primary" onclick="runAutomationPlaybook('${pb.id}')">▶ Run Playbook (Auto-Opens CLI)</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      const approvalRows = STATE.approvals.map(a => `
+        <tr>
+          <td class="mono" style="font-weight:700;">${escapeHtml(a.id)}</td>
+          <td>${escapeHtml(a.pbName)}</td>
+          <td class="mono">${escapeHtml(a.target)}</td>
+          <td><span class="badge ${a.status === 'PENDING' ? 'badge-warning' : (a.status === 'APPROVED' ? 'badge-success' : 'badge-danger')}">${escapeHtml(a.status)}</span></td>
+          <td>
+            ${a.status === 'PENDING' ? `
+              <button class="btn btn-sm btn-success" onclick="handleApprovalDecision('${a.id}', 'APPROVED')">Approve &amp; Execute</button>
+              <button class="btn btn-sm btn-danger" onclick="handleApprovalDecision('${a.id}', 'REJECTED')">Reject</button>
+            ` : '<span style="font-size:12px;color:var(--text-muted);">Completed</span>'}
+          </td>
+        </tr>
+      `).join('') || '<tr><td colspan="5" style="text-align:center;padding:16px;color:var(--text-muted);">No pending approvals. Run the HIGH-risk Kubernetes Canary Rollback playbook above to test the approval gate.</td></tr>';
+
+      return `
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Create New Ansible Playbook or Multi-Tool Automation</div>
+              <div class="card-subtitle">Author a reusable Ansible playbook or cross-tool remediation workflow</div>
+            </div>
+            <button class="btn btn-sm" onclick="openToolLogsInDrawer('int-ansible-01')">📜 View Ansible Runner Logs</button>
+          </div>
+          <div class="form-grid">
+            <div>
+              <label class="form-label">Automation / Playbook Name</label>
+              <input id="new-auto-name" class="input" placeholder="e.g. Ansible: Rotate Postgres Credentials" />
+            </div>
+            <div>
+              <label class="form-label">Provider</label>
+              <select id="new-auto-provider" class="select">
+                <option value="Ansible">Ansible</option>
+                <option value="Kubernetes">Kubernetes</option>
+                <option value="Docker">Docker</option>
+                <option value="Custom SDK">Custom App SDK</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Target Hosts / Service</label>
+              <input id="new-auto-target" class="input" placeholder="prod-db-servers" />
+            </div>
+            <div>
+              <label class="form-label">Playbook YAML Path or Command</label>
+              <input id="new-auto-file" class="input" placeholder="playbooks/rotate_pg_secrets.yml" />
+            </div>
+            <div>
+              <label class="form-label">Risk Level</label>
+              <select id="new-auto-risk" class="select">
+                <option value="LOW">LOW (Auto)</option>
+                <option value="MEDIUM">MEDIUM</option>
+                <option value="HIGH">HIGH (Approval)</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" onclick="createNewAnsibleAutomation()">+ Add Automation</button>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          ${pbCards}
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Policy Gate &amp; Human-in-the-Loop Approvals</div>
+          </div>
+          <div class="table-wrap">
+            <table class="clean-table">
+              <thead>
+                <tr>
+                  <th>Approval ID</th>
+                  <th>Playbook</th>
+                  <th>Target</th>
+                  <th>Status</th>
+                  <th>Decision</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${approvalRows}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    // 8. JENKINS CI/CD PIPELINES PAGE
+    function renderJenkinsPage() {
+      const selectedPipe = STATE.jenkinsPipelines.find(p => p.id === STATE.selectedPipelineId) || STATE.jenkinsPipelines[0];
+
+      const pipeCards = STATE.jenkinsPipelines.map(p => `
+        <div class="card interactive" style="margin-bottom:14px;border-color:${p.id === selectedPipe.id ? 'var(--primary)' : 'var(--border)'};">
+          <div class="card-header">
+            <div>
+              <div class="card-title">${escapeHtml(p.name)} <span class="badge badge-success">#${p.lastBuild} ${escapeHtml(p.status)}</span></div>
+              <div class="card-subtitle">Repo: <span class="mono">${escapeHtml(p.repo)}</span> &bull; Branch: <span class="mono">${escapeHtml(p.branch)}</span> (${escapeHtml(p.duration)})</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <input id="branch-${p.id}" class="input" style="width:110px;padding:5px 8px;font-size:12px;" value="${escapeHtml(p.branch)}" placeholder="Branch" />
+              <input id="tag-${p.id}" class="input" style="width:95px;padding:5px 8px;font-size:12px;" value="v2.4.5" placeholder="Tag" />
+              <button class="btn btn-sm btn-primary" onclick="triggerJenkinsPipelineBuild('${p.id}')">▶ Trigger Build</button>
+              <button class="btn btn-sm" onclick="openToolLogsInDrawer('int-jenkins-01')">📜 Jenkins Logs</button>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(120px, 1fr));gap:8px;">
+            ${p.stages.map(s => `
+              <div style="padding:8px 10px;background:var(--bg-elevated);border-radius:8px;border-left:3px solid var(--success);">
+                <div style="font-size:12px;font-weight:700;">${escapeHtml(s.name)}</div>
+                <div style="font-size:11px;color:var(--success);">✔ ${escapeHtml(s.status)} (${escapeHtml(s.time)})</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+
+      return `
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Create a New Jenkins Pipeline</div>
+              <div class="card-subtitle">Register a new Jenkinsfile CI/CD pipeline on Jenkins Controller (<code class="mono">int-jenkins-01</code>)</div>
+            </div>
+            <button class="btn btn-sm" onclick="openToolLogsInDrawer('int-jenkins-01')">📜 View Jenkins Controller Logs</button>
+          </div>
+          <div class="form-grid">
+            <div>
+              <label class="form-label">Pipeline Name</label>
+              <input id="new-pipe-name" class="input" placeholder="e.g. checkout-microservice-ci" />
+            </div>
+            <div>
+              <label class="form-label">Git Repository URL</label>
+              <input id="new-pipe-repo" class="input" placeholder="https://github.com/infrapilot-eng/checkout.git" />
+            </div>
+            <div>
+              <label class="form-label">Default Branch</label>
+              <input id="new-pipe-branch" class="input" value="main" />
+            </div>
+            <button class="btn btn-primary" onclick="createNewJenkinsPipeline()">+ Create Jenkins Pipeline</button>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div>${pipeCards}</div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Build Console Output // ${escapeHtml(selectedPipe.name)} #${selectedPipe.lastBuild}</div>
+                <div class="card-subtitle">Live Jenkins <code class="mono">/consoleText</code> stream</div>
+              </div>
+            </div>
+            <div class="mono" style="background:var(--bg-terminal);color:#e2e8f0;padding:14px;border-radius:10px;height:340px;overflow-y:auto;font-size:12px;line-height:1.6;white-space:pre-wrap;">${escapeHtml(selectedPipe.logs.join('\n'))}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 9. GITHUB COPILOT ENTERPRISE & AI SRE PAGE
+    function renderCopilotPage() {
+      const pol = STATE.copilot.policies;
+      const rca = STATE.copilot.lastAnalysis;
+
+      return `
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-subtitle">GITHUB COPILOT SEATS</div>
+            <div class="stat-value">${STATE.copilot.activeSeats} / ${STATE.copilot.totalSeats}</div>
+            <span class="badge badge-success">Organization: ${escapeHtml(STATE.copilot.org)}</span>
+          </div>
+          <div class="card">
+            <div class="card-subtitle">CLI SUGGESTIONS TODAY</div>
+            <div class="stat-value">${STATE.copilot.cliSuggestionsToday}</div>
+            <span class="badge badge-info">Acceptance Rate: ${escapeHtml(STATE.copilot.acceptanceRate)}</span>
+          </div>
+          <div class="card">
+            <div class="card-subtitle">COPILOT AGENT LOGS</div>
+            <div class="stat-value">Live Stream</div>
+            <button class="btn btn-sm btn-purple" onclick="openToolLogsInDrawer('int-copilot-01')">📜 View Copilot Agent Logs</button>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">🤖 Copilot AI SRE — Container Log Root-Cause Analyzer</div>
+                <div class="card-subtitle">Select any container to analyze its logs and stream the diagnosis to the CLI drawer</div>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+              <select id="copilot-target" class="select" style="flex:1;" onchange="runCopilotAnalysis(this.value)">
+                ${STATE.workloads.map(w => `<option value="${w.id}">${escapeHtml(w.name)} (${w.provider})</option>`).join('')}
+              </select>
+              <button class="btn btn-purple" onclick="runCopilotAnalysis(document.getElementById('copilot-target').value)">Analyze Container Logs</button>
+            </div>
+
+            <div style="padding:14px;background:var(--bg-elevated);border-radius:10px;margin-bottom:14px;">
+              <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Target: <strong>${escapeHtml(rca.target)}</strong> &bull; Confidence: <strong>${escapeHtml(rca.confidence)}</strong></div>
+              <div style="font-size:13.5px;margin-bottom:10px;">${escapeHtml(rca.diagnosis)}</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-terminal);color:#38bdf8;padding:8px 12px;border-radius:8px;flex-wrap:wrap;gap:8px;" class="mono">
+                <span>$ ${escapeHtml(rca.recommendedCommand)}</span>
+                <button class="btn btn-sm btn-primary" onclick="executeShellCommand(STATE.selectedTargetId, '${escapeHtml(rca.recommendedCommand)}')">Run in Shell</button>
+              </div>
+            </div>
+
+            <div class="card-subtitle" style="margin-bottom:6px;">Copilot Generated Remediation Playbook (YAML):</div>
+            <pre class="mono" style="background:var(--bg-terminal);color:#cbd5e1;padding:12px;border-radius:8px;font-size:12px;overflow-x:auto;">${escapeHtml(STATE.copilot.generatedSnippet)}</pre>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">GitHub Copilot Enterprise Policy Guardrails</div>
+                <div class="card-subtitle">Control organization-wide AI settings via GitHub REST API</div>
+              </div>
+            </div>
+
+            <div class="switch-row">
+              <div>
+                <div style="font-weight:700;">Block Public Code Suggestions</div>
+                <div style="font-size:12px;color:var(--text-muted);">Prevent suggestions matching public GitHub repositories</div>
+              </div>
+              <button class="toggle-btn ${pol.public_code_suggestions ? 'on' : ''}" onclick="flipCopilotPolicy('public_code_suggestions')"></button>
+            </div>
+
+            <div class="switch-row">
+              <div>
+                <div style="font-weight:700;">Enable Copilot CLI in Container Shells</div>
+                <div style="font-size:12px;color:var(--text-muted);">Allow natural-language shell assistance inside production terminals</div>
+              </div>
+              <button class="toggle-btn ${pol.cli_in_prod_shells ? 'on' : ''}" onclick="flipCopilotPolicy('cli_in_prod_shells')"></button>
+            </div>
+
+            <div class="switch-row">
+              <div>
+                <div style="font-weight:700;">Strict Secret &amp; PII Log Redaction</div>
+                <div style="font-size:12px;color:var(--text-muted);">Strip tokens, keys, and credentials before sending logs to Copilot RCA</div>
+              </div>
+              <button class="toggle-btn ${pol.strict_secret_redaction ? 'on' : ''}" onclick="flipCopilotPolicy('strict_secret_redaction')"></button>
+            </div>
+
+            <div class="switch-row">
+              <div>
+                <div style="font-weight:700;">Automated Pull Request Security Review</div>
+                <div style="font-size:12px;color:var(--text-muted);">Scan Terraform, Ansible &amp; Dockerfile PRs prior to Jenkins build</div>
+              </div>
+              <button class="toggle-btn ${pol.automated_pr_security_review ? 'on' : ''}" onclick="flipCopilotPolicy('automated_pr_security_review')"></button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function runCopilotAnalysis(targetId) {
+      STATE.selectedTargetId = targetId;
+      const w = STATE.workloads.find(x => x.id === targetId) || STATE.workloads[0];
+      if (w.status !== 'RUNNING' || w.cpu > 80) {
+        STATE.copilot.lastAnalysis = {
+          target: `${w.id} (${w.name})`,
+          confidence: '99.1%',
+          diagnosis: `CRITICAL ANOMALY: ${w.name} CPU is at ${w.cpu.toFixed(1)}% with thread starvation. Immediate process restart recommended.`,
+          recommendedCommand: 'supervisorctl restart all'
+        };
+      } else {
+        STATE.copilot.lastAnalysis = {
+          target: `${w.id} (${w.name})`,
+          confidence: '98.2%',
+          diagnosis: `Analyzed logs for ${w.name}: workload is healthy (CPU ${w.cpu.toFixed(1)}%, Memory ${w.memMb}MB/${w.memLimitMb}MB).`,
+          recommendedCommand: 'ps aux && netstat -tulnp'
+        };
+      }
+      autoOpenCliForTask(
+        'int-copilot-01',
+        `infrapilot copilot analyze ${w.id}`,
+        [
+          `[GitHub Copilot SRE Agent] Scanning container logs for ${w.name} (${w.id})...`,
+          `[Diagnosis (${STATE.copilot.lastAnalysis.confidence})] ${STATE.copilot.lastAnalysis.diagnosis}`,
+          `[Suggested Fix] $ ${STATE.copilot.lastAnalysis.recommendedCommand}`
+        ],
+        `Copilot RCA completed for ${w.name}`,
+        'shell'
+      );
+      renderCurrentPage();
+    }
+
+    function flipCopilotPolicy(key) {
+      STATE.copilot.policies[key] = !STATE.copilot.policies[key];
+      autoOpenCliForTask(
+        'int-copilot-01',
+        `infrapilot copilot policy --${key.replace(/_/g, '-')} ${STATE.copilot.policies[key] ? 'ENABLED' : 'DISABLED'}`,
+        [`[GitHub Copilot Enterprise API] Updated policy ${key} -> ${STATE.copilot.policies[key] ? 'ENABLED' : 'DISABLED'}`],
+        `Updated Copilot policy ${key}`,
+        'shell'
+      );
+      renderCurrentPage();
+    }
+
+    // 10. USERS & RBAC ACCESS CONTROL PAGE (SUPER ADMIN ONLY)
+    function renderUsersRbacPage() {
+      const isSuper = STATE.currentRole === 'SUPER_ADMIN';
+      const allPerms = [
+        { key: 'docker_exec', label: 'Docker Exec & Logs' },
+        { key: 'k8s_scale', label: 'K8s Scale & Rollout' },
+        { key: 'jenkins_admin', label: 'Jenkins Build & Create' },
+        { key: 'ansible_run', label: 'Ansible Playbooks' },
+        { key: 'terraform_apply', label: 'Terraform Plan/Apply' },
+        { key: 'grafana_edit', label: 'Grafana & PromQL' },
+        { key: 'prod_approvals', label: 'Prod Gate Approvals' },
+        { key: 'rbac_manage', label: 'Super Admin RBAC' }
+      ];
+
+      const userRows = STATE.rbacUsers.map(u => {
+        const chips = allPerms.map(p => {
+          const has = u.permissions.includes(p.key);
+          return `<span class="perm-chip ${has ? 'granted' : ''}" onclick="toggleUserPermission('${u.id}', '${p.key}')">${has ? '✔' : '+'} ${escapeHtml(p.label)}</span>`;
+        }).join('');
+
+        return `
+          <tr>
+            <td>
+              <div style="font-weight:700;color:var(--text-main);">${escapeHtml(u.name)}</div>
+              <div class="mono" style="font-size:12px;color:var(--text-muted);">${escapeHtml(u.email)} &bull; ${escapeHtml(u.title)}</div>
+            </td>
+            <td>
+              <select class="select" style="width:155px;padding:5px 8px;font-size:12px;font-weight:700;" onchange="changeUserRoleAssignment('${u.id}', this.value)" ${!isSuper ? 'disabled' : ''}>
+                <option value="SUPER_ADMIN" ${u.role === 'SUPER_ADMIN' ? 'selected' : ''}>👑 SUPER_ADMIN</option>
+                <option value="ADMIN" ${u.role === 'ADMIN' ? 'selected' : ''}>🛡️ ADMIN</option>
+                <option value="DEVELOPER" ${u.role === 'DEVELOPER' ? 'selected' : ''}>👨‍💻 DEVELOPER</option>
+              </select>
+            </td>
+            <td>${chips}</td>
+          </tr>
+        `;
+      }).join('');
+
+      return `
+        ${!isSuper ? `
+          <div class="card" style="margin-bottom:18px;border-color:var(--warning);background:var(--warning-soft);">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+              <div>
+                <div style="font-weight:700;font-size:15px;">🔒 Viewing in Read-Only Mode (Current Role: ${STATE.currentRole})</div>
+                <div style="font-size:13px;">Only <strong>Super Admin</strong> can grant or revoke developer access and modify role assignments.</div>
+              </div>
+              <button class="btn btn-primary" onclick="switchUserRole('SUPER_ADMIN')">👑 Switch to Super Admin</button>
+            </div>
+          </div>
+        ` : ''}
+
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-subtitle">👑 SUPER ADMIN ROLE</div>
+            <div class="stat-value">Full Control</div>
+            <div style="font-size:12.5px;color:var(--text-secondary);">Unrestricted access to all tools, production approvals, state locks, and granting/revoking Admin &amp; Developer permissions.</div>
+          </div>
+          <div class="card">
+            <div class="card-subtitle">🛡️ ADMIN ROLE</div>
+            <div class="stat-value">Ops &amp; Tool Admin</div>
+            <div style="font-size:12.5px;color:var(--text-secondary);">Can connect tools, run Ansible/Jenkins/Terraform workflows, and approve deployments, but cannot alter Super Admin RBAC.</div>
+          </div>
+          <div class="card">
+            <div class="card-subtitle">👨‍💻 DEVELOPER ROLE</div>
+            <div class="stat-value">Granular Scopes</div>
+            <div style="font-size:12.5px;color:var(--text-secondary);">Developers only get access to the exact tools, containers, and actions that the Super Admin toggles on for them below.</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header">
+            <div>
+              <div class="card-title">👑 Super Admin: Grant Access to a New Developer or Admin</div>
+              <div class="card-subtitle">Add a team member and customize which DevOps tools and container actions they can access</div>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div>
+              <label class="form-label">Full Name</label>
+              <input id="new-usr-name" class="input" placeholder="e.g. Vikram Singh" />
+            </div>
+            <div>
+              <label class="form-label">Email Address</label>
+              <input id="new-usr-email" class="input" placeholder="dev-vikram@infrapilot.io" />
+            </div>
+            <div>
+              <label class="form-label">Assign Role</label>
+              <select id="new-usr-role" class="select">
+                <option value="DEVELOPER">👨‍💻 DEVELOPER (Custom Scopes)</option>
+                <option value="ADMIN">🛡️ ADMIN (Ops &amp; Tools)</option>
+                <option value="SUPER_ADMIN">👑 SUPER_ADMIN (Full Access)</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Team / Job Title</label>
+              <input id="new-usr-title" class="input" placeholder="Payments Microservice Dev" />
+            </div>
+            <button class="btn btn-primary" onclick="addNewRbacUser()">+ Grant User Access</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Granular Developer &amp; Admin Permission Matrix</div>
+              <div class="card-subtitle">Click any permission badge to grant (<span style="color:var(--success);font-weight:700;">✔</span>) or revoke access in real time</div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="clean-table">
+              <thead>
+                <tr>
+                  <th>User &amp; Email</th>
+                  <th>Assigned Role</th>
+                  <th>Granted Tool &amp; Action Permissions (Click to Toggle)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${userRows}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    // 11. LIVE LOGS & INTERACTIVE CLI CONSOLE PAGE
+    function renderConsolePage() {
+      const w = STATE.workloads.find(x => x.id === STATE.selectedTargetId) || STATE.workloads[0];
+      const logs = (STATE.logsByTarget[STATE.selectedTargetId] || []).filter(l => {
+        if (STATE.logLevelFilter !== 'ALL' && l.level !== STATE.logLevelFilter) return false;
+        if (STATE.logSearchQuery && !(`${l.msg} ${l.src}`.toLowerCase().includes(STATE.logSearchQuery.toLowerCase()))) return false;
+        return true;
+      });
+
+      return `
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">💻 Interactive Container / Pod Shell (cmd / PowerShell / bash)</div>
+                <div class="card-subtitle">Run commands directly inside any selected container or microservice</div>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <select class="select" style="width:190px;padding:5px 8px;font-size:12px;" onchange="selectTarget(this.value)">
+                  ${STATE.workloads.map(x => `<option value="${x.id}" ${x.id === STATE.selectedTargetId ? 'selected' : ''}>${escapeHtml(x.name)}</option>`).join('')}
+                </select>
+                <select class="select" style="width:120px;padding:5px 8px;font-size:12px;" onchange="changeShellType(this.value)">
+                  <option value="bash" ${STATE.shellType === 'bash' ? 'selected' : ''}>bash</option>
+                  <option value="pwsh" ${STATE.shellType === 'pwsh' ? 'selected' : ''}>PowerShell</option>
+                  <option value="cmd" ${STATE.shellType === 'cmd' ? 'selected' : ''}>cmd.exe</option>
+                  <option value="sh" ${STATE.shellType === 'sh' ? 'selected' : ''}>sh</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+              <button class="btn btn-sm" onclick="executeShellCommand('${w.id}', 'ps aux')">ps aux</button>
+              <button class="btn btn-sm" onclick="executeShellCommand('${w.id}', 'env')">env</button>
+              <button class="btn btn-sm" onclick="executeShellCommand('${w.id}', 'netstat -tulnp')">netstat -tulnp</button>
+              <button class="btn btn-sm" onclick="executeShellCommand('${w.id}', 'df -h && free -m')">df -h &amp;&amp; free -m</button>
+              <button class="btn btn-sm btn-success" onclick="executeShellCommand('${w.id}', 'redis-cli FLUSHALL')">redis-cli FLUSHALL</button>
+              <button class="btn btn-sm btn-success" onclick="executeShellCommand('${w.id}', 'supervisorctl restart all')">supervisorctl restart</button>
+            </div>
+
+            <div class="mono" style="background:var(--bg-terminal);color:#e2e8f0;padding:14px;border-radius:10px;height:280px;overflow-y:auto;font-size:12.5px;line-height:1.55;white-space:pre-wrap;margin-bottom:10px;">${escapeHtml(STATE.shellHistory.join('\n\n'))}</div>
+
+            <div style="display:flex;gap:8px;">
+              <input
+                id="page-shell-input"
+                class="input mono"
+                placeholder="Type command for ${escapeHtml(w.name)} (e.g. ps aux, env, netstat -tulnp)..."
+                onkeydown="if(event.key==='Enter'){ executeShellCommand('${w.id}', this.value); this.value=''; }"
+              />
+              <button class="btn btn-primary" onclick="const el=document.getElementById('page-shell-input'); executeShellCommand('${w.id}', el.value); el.value='';">Execute</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">📜 Live Container &amp; Tool Logs</div>
+                <div class="card-subtitle">Select any container or any of the 10 connected DevOps tools to inspect its live logs</div>
+              </div>
+              <div style="display:flex;gap:6px;">
+                <select class="select" style="width:190px;padding:5px 8px;font-size:12px;" onchange="selectTarget(this.value)">
+                  <optgroup label="Containers &amp; Workloads">
+                    ${STATE.workloads.map(x => `<option value="${x.id}" ${x.id === STATE.selectedTargetId ? 'selected' : ''}>📦 ${escapeHtml(x.name)}</option>`).join('')}
+                  </optgroup>
+                  <optgroup label="Connected DevOps Tools">
+                    ${STATE.tools.map(t => `<option value="${t.id}" ${t.id === STATE.selectedTargetId ? 'selected' : ''}>🔌 ${escapeHtml(t.name)}</option>`).join('')}
+                  </optgroup>
+                </select>
+                <select class="select" style="width:100px;padding:5px 8px;font-size:12px;" onchange="STATE.logLevelFilter=this.value; renderCurrentPage();">
+                  <option value="ALL" ${STATE.logLevelFilter === 'ALL' ? 'selected' : ''}>ALL</option>
+                  <option value="INFO" ${STATE.logLevelFilter === 'INFO' ? 'selected' : ''}>INFO</option>
+                  <option value="WARN" ${STATE.logLevelFilter === 'WARN' ? 'selected' : ''}>WARN</option>
+                  <option value="ERROR" ${STATE.logLevelFilter === 'ERROR' ? 'selected' : ''}>ERROR</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+              <input
+                class="input"
+                placeholder="Search / filter log lines..."
+                value="${escapeHtml(STATE.logSearchQuery)}"
+                oninput="STATE.logSearchQuery=this.value; renderCurrentPage();"
+              />
+              <button class="btn btn-sm" onclick="addLogEntry('${STATE.selectedTargetId}', 'INFO', 'operator.probe', 'Manual log check OK'); renderCurrentPage();">+ Test Log</button>
+            </div>
+
+            <div class="mono" style="background:var(--bg-terminal);color:#cbd5e1;padding:14px;border-radius:10px;height:325px;overflow-y:auto;font-size:12px;line-height:1.6;">
+              ${logs.map(l => `<div><span style="color:#64748b;">${escapeHtml(l.ts)}</span> <strong style="color:${l.level === 'ERROR' ? '#f87171' : (l.level === 'WARN' ? '#fbbf24' : '#34d399')};">[${escapeHtml(l.level)}]</strong> <span style="color:#38bdf8;">[${escapeHtml(l.src)}]</span> ${escapeHtml(l.msg)}</div>`).join('') || '<div style="color:#64748b;">No matching log entries.</div>'}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 12. CLI & PYTHON SDK DOCUMENTATION PAGE
+    function renderDocsPage() {
+      const cliSections = [
+        {
+          category: '1. Connect & Manage Tool Endpoints by CLI',
+          desc: 'Add Docker, Kubernetes, Jenkins, Ansible, Grafana, Prometheus, Terraform, AWS, or GitHub Copilot endpoints directly from your terminal:',
+          commands: [
+            { cmd: 'infrapilot tools connect "Grafana Prod" --provider grafana --endpoint "http://grafana.internal:3000"', info: 'Connect a Grafana server endpoint to the Control Plane' },
+            { cmd: 'infrapilot tools connect "Prometheus TSDB" --provider prometheus --endpoint "http://prometheus.internal:9090"', info: 'Connect a Prometheus Alertmanager & TSDB endpoint' },
+            { cmd: 'infrapilot tools connect "Ansible AWX Prod" --provider ansible --endpoint "http://awx.internal:8052/api/v2"', info: 'Connect an Ansible Runner / AWX Tower endpoint' },
+            { cmd: 'infrapilot tools connect "Jenkins Controller" --provider jenkins --endpoint "http://jenkins.internal:8080"', info: 'Connect a Jenkins CI/CD Controller endpoint' },
+            { cmd: 'infrapilot tools list', info: 'List all connected DevOps tools, circuit states, and health status' }
+          ]
+        },
+        {
+          category: '2. Container & Tool Logs + Interactive Container Shell Exec',
+          desc: 'Stream logs for any container or tool and run bash / PowerShell / cmd commands inside containers:',
+          commands: [
+            { cmd: 'infrapilot logs res-nexus-worker -n 20 -l INFO', info: 'Tail last 20 INFO log lines from the NexusPay worker container' },
+            { cmd: 'infrapilot logs int-jenkins-01 -n 20', info: 'Stream live logs from the Jenkins CI/CD Controller integration' },
+            { cmd: 'infrapilot exec res-nexus-worker "ps aux" --shell bash', info: 'Run ps aux inside the container using /bin/bash' },
+            { cmd: 'infrapilot exec res-nexus-redis "redis-cli FLUSHALL" --shell sh', info: 'Flush stale Redis keys directly inside the Redis container' }
+          ]
+        },
+        {
+          category: '3. Grafana, Prometheus, Terraform & AWS CLI Controls',
+          desc: 'Query metrics, sync dashboards, and run Terraform plan/apply workflows:',
+          commands: [
+            { cmd: 'infrapilot grafana dashboards', info: 'List all synced Grafana observability dashboards and URLs' },
+            { cmd: 'infrapilot prometheus query "rate(nexuspay_requests_total[5m])"', info: 'Execute an instant PromQL query against Prometheus TSDB' },
+            { cmd: 'infrapilot terraform plan --workspace prod-aws-us-east-1', info: 'Run a speculative Terraform plan and drift check' },
+            { cmd: 'infrapilot terraform apply --workspace prod-aws-us-east-1 --auto-approve', info: 'Apply Terraform changes to cloud infrastructure' }
+          ]
+        },
+        {
+          category: '4. Jenkins CI/CD, Ansible Automations & Super Admin RBAC',
+          desc: 'Create pipelines, run Ansible playbooks, and grant granular permissions to developers:',
+          commands: [
+            { cmd: 'infrapilot jenkins create "checkout-service-ci" --branch main --repo "https://github.com/infrapilot-eng/checkout.git"', info: 'Create a new Jenkins pipeline via CLI' },
+            { cmd: 'infrapilot jenkins build nexuspay-prod-release --branch main --tag v2.4.5', info: 'Trigger a parameterized Jenkins build' },
+            { cmd: 'infrapilot automation create "Ansible Patch Nginx" --provider ansible --action "playbooks/nginx_tls.yml" --target "prod-web-fleet"', info: 'Register a new Ansible automation playbook' },
+            { cmd: 'infrapilot automation run pb-restart-workers', info: 'Execute an automation runbook and stream step output' },
+            { cmd: 'infrapilot users grant "dev-rahul@infrapilot.io" --role DEVELOPER --permissions "docker,kubernetes,jenkins,grafana,logs,exec"', info: '[Super Admin] Grant role and tool permissions to a developer' }
+          ]
+        }
+      ];
+
+      const sectionsHtml = cliSections.map(sec => `
+        <div class="card" style="margin-bottom:18px;">
+          <div class="card-header">
+            <div>
+              <div class="card-title">${escapeHtml(sec.category)}</div>
+              <div class="card-subtitle">${escapeHtml(sec.desc)}</div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            ${sec.commands.map(c => `
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;flex-wrap:wrap;">
+                <div>
+                  <code class="mono" style="color:var(--primary);font-weight:700;font-size:12.5px;">$ ${escapeHtml(c.cmd)}</code>
+                  <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${escapeHtml(c.info)}</div>
+                </div>
+                <button class="btn btn-sm btn-primary" onclick="runCliCommand('${escapeHtml(c.cmd)}')">▶ Run in CLI Drawer</button>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+
+      const sdkCode = `from infrapilot import InfraPilotToolAgent, ToolActionResult
+
+agent = InfraPilotToolAgent(
+    app_name="NexusPay Order & Payment Gateway",
+    endpoint_url="http://127.0.0.1:5055",
+    control_plane_url="http://127.0.0.1:8000/api/v1",
+)
+
+@agent.action("app_restart_workers", risk="LOW")
+def restart_workers(**kwargs) -> ToolActionResult:
+    return ToolActionResult(success=True, action="app_restart_workers", message="Workers restarted")
+
+agent.connect_to_control_plane()`;
+
+      return `
+        ${sectionsHtml}
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">5. Python SDK — Connect Any Application as a Controllable Tool</div>
+              <div class="card-subtitle">Install with <code class="mono">pip install -e .</code> and import <code class="mono">InfraPilotToolAgent</code></div>
+            </div>
+          </div>
+          <pre class="mono" style="background:var(--bg-terminal);color:#e2e8f0;padding:14px;border-radius:10px;font-size:12.5px;overflow-x:auto;line-height:1.55;">${escapeHtml(sdkCode)}</pre>
+        </div>
+      `;
+    }
+
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      syncNavigationBadges();
+      renderCurrentPage();
+      renderDrawerOutput();
+    });
+  </script>
+</body>
+</html>

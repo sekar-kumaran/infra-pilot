@@ -1,0 +1,1957 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>InfraTrack v2.0 — Unified DevOps Control Plane & CLI Workbench</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+        }
+      }
+    };
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #070b14;
+      color: #e2e8f0;
+    }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.78);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(51, 65, 85, 0.55);
+    }
+    .glass-panel {
+      background: linear-gradient(145deg, rgba(15, 23, 42, 0.92), rgba(9, 14, 28, 0.92));
+      border: 1px solid rgba(71, 85, 105, 0.45);
+    }
+    .cyber-glow {
+      box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.28);
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #090d16;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col md:flex-row overflow-x-hidden selection:bg-indigo-500 selection:text-white">
+
+  <!-- Sidebar Navigation -->
+  <aside class="w-full md:w-64 bg-slate-950/95 border-b md:border-b-0 md:border-r border-slate-800/80 flex flex-col shrink-0 md:h-screen md:sticky md:top-0 z-30">
+    <div class="p-4 md:p-5 flex items-center justify-between border-b border-slate-800/80">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 via-cyan-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-indigo-500/20 font-mono font-bold text-slate-950 text-lg">
+          IT
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-extrabold text-base tracking-tight text-white">InfraTrack</span>
+            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">v2.0</span>
+          </div>
+          <p class="text-[11px] text-slate-400">DevOps Control Plane</p>
+        </div>
+      </div>
+      <button id="mobileMenuBtn" class="md:hidden p-2 rounded-lg bg-slate-900 text-slate-300 hover:text-white border border-slate-800" aria-label="Toggle navigation">
+        ☰
+      </button>
+    </div>
+
+    <nav id="sidebarNav" class="hidden md:flex flex-col flex-1 p-3 space-y-1 overflow-y-auto">
+      <div class="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Command Center</div>
+      <button data-view="dashboard" class="nav-btn w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all bg-indigo-600/20 text-indigo-300 border border-indigo-500/30">
+        <span class="flex items-center gap-2.5"><span>⚡</span><span>Mission Control</span></span>
+        <span id="navBadgeOpenInc" class="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">0</span>
+      </button>
+      <button data-view="cli" class="nav-btn w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white transition-all">
+        <span class="flex items-center gap-2.5"><span>💻</span><span>CLI Terminal & SDK</span></span>
+        <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300">CLI</span>
+      </button>
+      <button data-view="demo" class="nav-btn w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white transition-all">
+        <span class="flex items-center gap-2.5"><span>🚀</span><span>NexusPay Demo App</span></span>
+        <span id="navBadgeDemo" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">LIVE</span>
+      </button>
+
+      <div class="px-2.5 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Infrastructure & Tools</div>
+      <button data-view="tools" class="nav-btn w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white transition-all">
+        <span class="flex items-center gap-2.5"><span>🔌</span><span>DevOps Tools Hub</span></span>
+        <span id="navBadgeTools" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">8</span>
+      </button>
+      <button data-view="topology" class="nav-btn w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white transition-all">
+        <span class="flex items-center gap-2.5"><span>🌐</span><span>Topology & Resources</span></span>
+        <span id="navBadgeRes" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">6</span>
+      </button>
+
+      <div class="px-2.5 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Operations & Automation</div>
+      <button data-view="incidents" class="nav-btn w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white transition-all">
+        <span class="flex items-center gap-2.5"><span>🚨</span><span>Incidents & Alerts</span></span>
+        <span id="navBadgeAlerts" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">0</span>
+      </button>
+      <button data-view="automation" class="nav-btn w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white transition-all">
+        <span class="flex items-center gap-2.5"><span>🤖</span><span>Workflows & Approvals</span></span>
+        <span id="navBadgeApprovals" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">0</span>
+      </button>
+      <button data-view="governance" class="nav-btn w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white transition-all">
+        <span class="flex items-center gap-2.5"><span>🛡️</span><span>Policies, Ops & Audit</span></span>
+      </button>
+    </nav>
+
+    <div class="hidden md:block p-4 border-t border-slate-800/80 bg-slate-950">
+      <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-slate-400">Control Plane</span>
+          <span class="flex items-center gap-1.5 text-emerald-400 font-medium"><span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>ONLINE</span>
+        </div>
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-slate-400">Operator</span>
+          <span class="font-mono text-slate-200 text-[11px]">admin@infratrack.io</span>
+        </div>
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-slate-400">RBAC Role</span>
+          <span class="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono text-[10px]">ADMIN (*)</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <div class="flex-1 flex flex-col min-w-0">
+    <!-- Top Command Bar -->
+    <header class="bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 px-4 md:px-8 py-3.5 sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <span id="systemStatusPill" class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          ALL SYSTEMS NOMINAL
+        </span>
+        <span class="hidden sm:inline-block text-xs text-slate-400 font-mono">Tenant: production-us-east</span>
+      </div>
+
+      <div class="flex items-center gap-2 flex-wrap">
+        <button id="topChaosWorkerBtn" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 transition-all">
+          ⚡ Inject Worker Chaos
+        </button>
+        <button id="topChaosCanaryBtn" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 transition-all">
+          🔥 Inject Canary 500s
+        </button>
+        <button id="topAutoHealBtn" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 transition-all">
+          ✨ Auto-Heal All Incidents
+        </button>
+        <button id="topOpenCliBtn" class="px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 transition-all">
+          &gt;_ CLI Console
+        </button>
+      </div>
+    </header>
+
+    <!-- Toast Notification Banner -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+    <!-- Views Container -->
+    <main class="flex-1 p-4 md:p-8 space-y-6 max-w-7xl w-full mx-auto">
+
+      <!-- ================================================================= -->
+      <!-- VIEW 1: MISSION CONTROL DASHBOARD                                 -->
+      <!-- ================================================================= -->
+      <section id="view-dashboard" class="view-section space-y-6">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-white">Mission Control Plane</h1>
+            <p class="text-sm text-slate-400 mt-1">Unified observability, incident correlation, policy guardrails, and closed-loop DevOps tool automation.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="dashRunE2EBtn" class="px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white shadow-lg shadow-indigo-600/20 transition-all">
+              ▶ Run Full E2E Closed-Loop Test
+            </button>
+          </div>
+        </div>
+
+        <!-- KPI Grid -->
+        <div id="dashboardKpiGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4"></div>
+
+        <!-- Charts & Live Feed Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 glass-card rounded-2xl p-5 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h2 class="text-base font-bold text-white">Real-Time Golden Signals (Prometheus + NexusPay SDK)</h2>
+                <p class="text-xs text-slate-400">Live telemetry across connected containers, Kubernetes pods, and Redis cache</p>
+              </div>
+              <span id="telemetryStatusTag" class="text-xs font-mono px-2.5 py-1 rounded bg-slate-800 text-cyan-300">Scrape: 5s</span>
+            </div>
+            <div class="relative h-64 w-full">
+              <canvas id="telemetryChart"></canvas>
+            </div>
+          </div>
+
+          <div class="glass-card rounded-2xl p-5 flex flex-col">
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="text-base font-bold text-white">Live Control Plane Stream</h2>
+              <span class="text-[11px] font-mono text-indigo-400">Event Engine</span>
+            </div>
+            <div id="liveStreamList" class="flex-1 space-y-2.5 overflow-y-auto max-h-64 pr-1"></div>
+          </div>
+        </div>
+
+        <!-- Connected Applications & Quick Tool Matrix -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="glass-card rounded-2xl p-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-base font-bold text-white">Connected Applications</h2>
+                <p class="text-xs text-slate-400">Applications integrated via InfraTrack SDK Package & Prometheus</p>
+              </div>
+              <button id="dashInspectDemoBtn" class="text-xs font-semibold text-cyan-400 hover:text-cyan-300">Open Demo App Sandbox →</button>
+            </div>
+            <div id="dashboardAppsList" class="space-y-3"></div>
+          </div>
+
+          <div class="glass-card rounded-2xl p-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-base font-bold text-white">Active Playbooks & Self-Healing Runbooks</h2>
+                <p class="text-xs text-slate-400">1-click execution across Ansible, Docker, Kubernetes & SDK Agents</p>
+              </div>
+              <button id="dashViewAllPlaybooksBtn" class="text-xs font-semibold text-indigo-400 hover:text-indigo-300">All Workflows →</button>
+            </div>
+            <div id="dashboardPlaybooksList" class="space-y-2.5"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================= -->
+      <!-- VIEW 2: INTERACTIVE CLI TERMINAL & SDK WORKBENCH                  -->
+      <!-- ================================================================= -->
+      <section id="view-cli" class="view-section hidden space-y-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-white">Interactive CLI & Package SDK Workbench</h1>
+            <p class="text-sm text-slate-400 mt-1">Run <code class="font-mono text-cyan-300">infratrack</code> / <code class="font-mono text-cyan-300">infrapilot</code> CLI commands right here or in your local terminal — 100% synced with the Web UI.</p>
+          </div>
+          <button id="clearTerminalBtn" class="px-3 py-1.5 rounded-lg text-xs font-mono bg-slate-800 hover:bg-slate-700 text-slate-300 self-start">
+            Clear Terminal
+          </button>
+        </div>
+
+        <!-- Quick CLI Command Chips -->
+        <div class="glass-card rounded-2xl p-4 space-y-3">
+          <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">Quick CLI Commands (Click to Execute)</div>
+          <div class="flex flex-wrap gap-2">
+            <button data-cmd="infratrack status" class="cli-chip px-3 py-1.5 rounded-lg text-xs font-mono bg-slate-900 hover:bg-indigo-600/30 text-cyan-300 border border-slate-700 hover:border-indigo-500/50 transition-all">infratrack status</button>
+            <button data-cmd="infratrack apps list" class="cli-chip px-3 py-1.5 rounded-lg text-xs font-mono bg-slate-900 hover:bg-indigo-600/30 text-cyan-300 border border-slate-700 hover:border-indigo-500/50 transition-all">infratrack apps list</button>
+            <button data-cmd="infratrack tools list" class="cli-chip px-3 py-1.5 rounded-lg text-xs font-mono bg-slate-900 hover:bg-indigo-600/30 text-cyan-300 border border-slate-700 hover:border-indigo-500/50 transition-all">infratrack tools list</button>
+            <button data-cmd="infratrack tools capabilities" class="cli-chip px-3 py-1.5 rounded-lg text-xs font-mono bg-slate-900 hover:bg-indigo-600/30 text-cyan-300 border border-slate-700 hover:border-indigo-500/50 transition-all">infratrack tools capabilities</button>
+            <button data-cmd="infratrack resources topology" class="cli-chip px-3 py-1.5 rounded-lg text-xs font-mono bg-slate-900 hover:bg-indigo-600/30 text-cyan-300 border border-slate-700 hover:border-indigo-500/50 transition-all">infratrack resources topology</button>
+            <button data-cmd="infratrack demo chaos --scenario worker_pool_exhaustion" class="cli-chip px-3 py-1.5 rounded-lg text-xs font-mono bg-rose-950/60 hover:bg-rose-900/60 text-rose-300 border border-rose-700/50 transition-all">infratrack demo chaos --scenario worker_pool_exhaustion</button>
+            <button data-cmd="infratrack demo chaos --scenario canary_500_surge" class="cli-chip px-3 py-1.5 rounded-lg text-xs font-mono bg-amber-950/60 hover:bg-amber-900/60 text-amber-300 border border-amber-700/50 transition-all">infratrack demo chaos --scenario canary_500_surge</button>
+            <button data-cmd="infratrack incidents list" class="cli-chip px-3 py-1.5 rounded-lg text-xs font-mono bg-slate-900 hover:bg-indigo-600/30 text-cyan-300 border border-slate-700 hover:border-indigo-500/50 transition-all">infratrack incidents list</button>
+            <button data-cmd="infratrack demo heal" class="cli-chip px-3 py-1.5 rounded-lg text-xs font-mono bg-emerald-950/60 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-700/50 transition-all">infratrack demo heal</button>
+            <button data-cmd="infratrack automation playbooks" class="cli-chip px-3 py-1.5 rounded-lg text-xs font-mono bg-slate-900 hover:bg-indigo-600/30 text-cyan-300 border border-slate-700 hover:border-indigo-500/50 transition-all">infratrack automation playbooks</button>
+            <button data-cmd="infratrack automation approvals" class="cli-chip px-3 py-1.5 rounded-lg text-xs font-mono bg-slate-900 hover:bg-indigo-600/30 text-cyan-300 border border-slate-700 hover:border-indigo-500/50 transition-all">infratrack automation approvals</button>
+            <button data-cmd="infratrack policies simulate --action aws_terminate_instance --risk CRITICAL --env PRODUCTION" class="cli-chip px-3 py-1.5 rounded-lg text-xs font-mono bg-slate-900 hover:bg-indigo-600/30 text-cyan-300 border border-slate-700 hover:border-indigo-500/50 transition-all">infratrack policies simulate --action aws_terminate_instance --risk CRITICAL</button>
+            <button data-cmd="infratrack audit list" class="cli-chip px-3 py-1.5 rounded-lg text-xs font-mono bg-slate-900 hover:bg-indigo-600/30 text-cyan-300 border border-slate-700 hover:border-indigo-500/50 transition-all">infratrack audit list</button>
+          </div>
+        </div>
+
+        <!-- Terminal Window -->
+        <div class="rounded-2xl overflow-hidden border border-slate-700/80 bg-[#050811] shadow-2xl">
+          <div class="bg-slate-900/90 px-4 py-2.5 border-b border-slate-800 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+              <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+              <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+              <span class="ml-2 text-xs font-mono text-slate-400">sre@infratrack-control-plane:~ (infratrack CLI v2.0.0)</span>
+            </div>
+            <span class="text-[11px] font-mono text-slate-500">Supports --json &amp; interactive tables</span>
+          </div>
+          <div id="cliOutputWindow" class="p-5 font-mono text-xs md:text-sm space-y-4 h-96 overflow-y-auto text-slate-200 whitespace-pre-wrap leading-relaxed"></div>
+          <form id="cliInputForm" class="border-t border-slate-800 bg-slate-950 px-4 py-3 flex items-center gap-3">
+            <span class="font-mono text-emerald-400 font-bold text-sm">$</span>
+            <input id="cliCommandInput" type="text" value="infratrack status" placeholder="Type any infratrack command (e.g., infratrack status, infratrack tools list, infratrack demo heal)..." class="flex-1 bg-transparent font-mono text-sm text-white focus:outline-none" />
+            <button type="submit" class="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-xs font-semibold">Run</button>
+          </form>
+        </div>
+
+        <!-- Python Package SDK Code Reference -->
+        <div class="glass-card rounded-2xl p-5 space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-base font-bold text-white">Embed InfraTrack in Any Application Like a Package</h3>
+              <p class="text-xs text-slate-400">Install with <code class="font-mono text-cyan-300">pip install -e .</code> and connect any service as a controllable tool in seconds:</p>
+            </div>
+          </div>
+          <pre class="p-4 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-cyan-200 overflow-x-auto"><code>from infratrack import InfraTrackToolAgent, ToolActionResult
+
+agent = InfraTrackToolAgent(
+    app_name="NexusPay Order &amp; Payment Gateway",
+    tool_name="NexusPay App SDK Tool Agent",
+    endpoint_url="http://127.0.0.1:5055",
+    control_plane_url="http://127.0.0.1:8000/api/v1",
+)
+
+@agent.action("app_restart_workers", risk="LOW", description="Restart payment settlement workers")
+def restart_workers(**kwargs) -&gt; ToolActionResult:
+    return ToolActionResult(success=True, action="app_restart_workers", message="Workers restarted")
+
+# Registers application, tool capabilities, and infrastructure resources automatically
+agent.connect_to_control_plane(resources=[...])</code></pre>
+        </div>
+      </section>
+
+      <!-- ================================================================= -->
+      <!-- VIEW 3: NEXUSPAY DEMO APPLICATION SANDBOX                         -->
+      <!-- ================================================================= -->
+      <section id="view-demo" class="view-section hidden space-y-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2.5">
+              <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-white">NexusPay Order &amp; Payment Gateway</h1>
+              <span id="demoAppStatusBadge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">HEALTHY</span>
+            </div>
+            <p class="text-sm text-slate-400 mt-1">Live Demo Application connected to InfraTrack via <code class="font-mono text-cyan-300">InfraTrackToolAgent</code> SDK package (<code class="font-mono text-slate-300">http://127.0.0.1:5055</code>).</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="demoSendPaymentBtn" class="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20">
+              💳 Send Test Payment ($149.99)
+            </button>
+          </div>
+        </div>
+
+        <!-- Demo App Live Metrics -->
+        <div id="demoMetricsGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3"></div>
+
+        <!-- Chaos Injection vs SDK Tool Actions -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="glass-card rounded-2xl p-5 space-y-4 border-rose-500/20">
+            <div>
+              <h2 class="text-base font-bold text-white flex items-center gap-2">⚡ Step 1: Inject Failure / Chaos Scenario</h2>
+              <p class="text-xs text-slate-400 mt-0.5">Simulates real production failures in NexusPay, fires Prometheus alerts, and triggers incident correlation.</p>
+            </div>
+            <div class="space-y-3">
+              <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between gap-4">
+                <div>
+                  <div class="text-sm font-semibold text-white">Worker Pool Thread Exhaustion (CPU 98.4%)</div>
+                  <div class="text-xs text-slate-400">Deadlocks payment worker container &amp; spikes p99 latency &gt; 4,800ms</div>
+                </div>
+                <button data-chaos="worker_pool_exhaustion" class="demo-chaos-btn shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white">Inject</button>
+              </div>
+              <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between gap-4">
+                <div>
+                  <div class="text-sm font-semibold text-white">Redis Cache Eviction Storm &amp; DB Leak</div>
+                  <div class="text-xs text-slate-400">Saturates Redis memory (97%) and leaks PostgreSQL ledger connections (194/200)</div>
+                </div>
+                <button data-chaos="redis_latency_spike" class="demo-chaos-btn shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white">Inject</button>
+              </div>
+              <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between gap-4">
+                <div>
+                  <div class="text-sm font-semibold text-white">Bad Canary Deployment v2.4.0-rc1 (62% HTTP 500s)</div>
+                  <div class="text-xs text-slate-400">Triggers HIGH-risk Canary Rollback runbook gated by human approval policy</div>
+                </div>
+                <button data-chaos="canary_500_surge" class="demo-chaos-btn shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white">Inject</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="glass-card rounded-2xl p-5 space-y-4 border-emerald-500/20">
+            <div>
+              <h2 class="text-base font-bold text-white flex items-center gap-2">🛠️ Step 2: Execute Registered SDK Tool Actions</h2>
+              <p class="text-xs text-slate-400 mt-0.5">Invoke <code class="font-mono text-cyan-300">@agent.action</code> hooks exposed by the NexusPay Demo App package integration.</p>
+            </div>
+            <div class="space-y-2.5">
+              <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
+                <div>
+                  <div class="text-sm font-mono font-semibold text-cyan-300">app_restart_workers</div>
+                  <div class="text-xs text-slate-400">Risk: LOW • Gracefully restarts worker pool &amp; clears deadlocks</div>
+                </div>
+                <button data-sdk-action="app_restart_workers" class="demo-sdk-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white">Execute</button>
+              </div>
+              <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
+                <div>
+                  <div class="text-sm font-mono font-semibold text-cyan-300">app_flush_cache</div>
+                  <div class="text-xs text-slate-400">Risk: LOW • Flushes stale Redis keys &amp; resets DB connection pool</div>
+                </div>
+                <button data-sdk-action="app_flush_cache" class="demo-sdk-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white">Execute</button>
+              </div>
+              <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
+                <div>
+                  <div class="text-sm font-mono font-semibold text-cyan-300">app_scale_replicas</div>
+                  <div class="text-xs text-slate-400">Risk: MEDIUM • Horizontally scales K8s Gateway deployment to 5 replicas</div>
+                </div>
+                <button data-sdk-action="app_scale_replicas" class="demo-sdk-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white">Scale to 5</button>
+              </div>
+              <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
+                <div>
+                  <div class="text-sm font-mono font-semibold text-amber-300">app_rollback_release</div>
+                  <div class="text-xs text-slate-400">Risk: HIGH (Approval Gated) • Rolls back canary v2.4.0-rc1 to v2.3.1</div>
+                </div>
+                <button data-sdk-action="app_rollback_release" class="demo-sdk-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white">Request Rollback</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Demo App Live Transaction & Action Log -->
+        <div class="glass-card rounded-2xl p-5 space-y-3">
+          <h3 class="text-sm font-bold text-white uppercase tracking-wider">NexusPay Live API &amp; SDK Execution Log</h3>
+          <div id="demoTransactionLog" class="p-4 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs space-y-1.5 max-h-52 overflow-y-auto"></div>
+        </div>
+      </section>
+
+      <!-- ================================================================= -->
+      <!-- VIEW 4: DEVOPS TOOLS & INTEGRATIONS HUB                           -->
+      <!-- ================================================================= -->
+      <section id="view-tools" class="view-section hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-white">DevOps Tools &amp; Integrations Hub</h1>
+            <p class="text-sm text-slate-400 mt-1">Manage all connected DevOps providers, run health validations, trigger resource discovery, and control circuit breakers.</p>
+          </div>
+          <button id="openAddToolModalBtn" class="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white self-start">
+            + Connect DevOps Tool
+          </button>
+        </div>
+
+        <div id="toolsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+      </section>
+
+      <!-- ================================================================= -->
+      <!-- VIEW 5: TOPOLOGY MAP & INFRASTRUCTURE RESOURCES                   -->
+      <!-- ================================================================= -->
+      <section id="view-topology" class="view-section hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-white">Infrastructure Topology &amp; Resource Control</h1>
+            <p class="text-sm text-slate-400 mt-1">Live cross-provider dependency graph and direct container/deployment lifecycle controls.</p>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button data-res-filter="ALL" class="res-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white">All Providers</button>
+            <button data-res-filter="kubernetes" class="res-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">Kubernetes</button>
+            <button data-res-filter="docker" class="res-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">Docker</button>
+            <button data-res-filter="aws" class="res-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">AWS</button>
+          </div>
+        </div>
+
+        <!-- Visual Topology Map -->
+        <div class="glass-card rounded-2xl p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-bold text-white">Live Service Dependency Topology</h2>
+            <span class="text-xs text-slate-400 font-mono">Click any resource action below to control state</span>
+          </div>
+          <div id="topologyVisualContainer" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch"></div>
+        </div>
+
+        <!-- Resource Table -->
+        <div class="glass-card rounded-2xl overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 bg-slate-900/60 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                  <th class="py-3.5 px-4">Resource</th>
+                  <th class="py-3.5 px-4">Provider</th>
+                  <th class="py-3.5 px-4">Type</th>
+                  <th class="py-3.5 px-4">Status</th>
+                  <th class="py-3.5 px-4">Live Telemetry</th>
+                  <th class="py-3.5 px-4 text-right">Direct Control Actions</th>
+                </tr>
+              </thead>
+              <tbody id="resourcesTableBody" class="divide-y divide-slate-800/70 text-sm"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================= -->
+      <!-- VIEW 6: INCIDENTS & CORRELATED ALERTS                             -->
+      <!-- ================================================================= -->
+      <section id="view-incidents" class="view-section hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-white">Correlated Incidents &amp; Alert Stream</h1>
+            <p class="text-sm text-slate-400 mt-1">Deterministic cross-system alert normalization, incident timeline, and 1-click automated remediation.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="incTriggerChaosBtn" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30">
+              + Simulate Alert &amp; Incident
+            </button>
+          </div>
+        </div>
+
+        <div id="incidentsListContainer" class="space-y-4"></div>
+      </section>
+
+      <!-- ================================================================= -->
+      <!-- VIEW 7: AUTOMATION WORKFLOWS, PLAYBOOKS & APPROVALS               -->
+      <!-- ================================================================= -->
+      <section id="view-automation" class="view-section hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-white">Automation Workflows, Approvals &amp; Scheduler</h1>
+            <p class="text-sm text-slate-400 mt-1">Policy-controlled runbooks, human-in-the-loop approval gates, execution history, and cron schedules.</p>
+          </div>
+          <button id="openCreatePlaybookModalBtn" class="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white self-start">
+            + Create Workflow Playbook
+          </button>
+        </div>
+
+        <!-- Human-in-the-Loop Approvals Queue -->
+        <div class="glass-card rounded-2xl p-5 space-y-4 border-amber-500/30">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-base font-bold text-white flex items-center gap-2">🛡️ Human-in-the-Loop Approval Gate</h2>
+              <p class="text-xs text-slate-400">High-risk production mutations (e.g., Canary Rollback) pause here until authorized by an operator.</p>
+            </div>
+          </div>
+          <div id="approvalsListContainer" class="space-y-3"></div>
+        </div>
+
+        <!-- Playbooks & Execution History Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="glass-card rounded-2xl p-5 space-y-4">
+            <h2 class="text-base font-bold text-white">Registered Playbooks &amp; Runbooks</h2>
+            <div id="playbooksFullList" class="space-y-3"></div>
+          </div>
+
+          <div class="glass-card rounded-2xl p-5 space-y-4">
+            <h2 class="text-base font-bold text-white">Execution Timeline &amp; Verification Status</h2>
+            <div id="executionsListContainer" class="space-y-3 max-h-96 overflow-y-auto pr-1"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================= -->
+      <!-- VIEW 8: GOVERNANCE POLICIES, SIMULATOR & AUDIT TRAIL              -->
+      <!-- ================================================================= -->
+      <section id="view-governance" class="view-section hidden space-y-6">
+        <div>
+          <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-white">Policy Simulator, Worker Fleet &amp; Security Audit</h1>
+          <p class="text-sm text-slate-400 mt-1">Test policy engine decisions before execution, monitor Celery worker queues, and inspect the immutable audit log.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Policy Simulator -->
+          <div class="glass-card rounded-2xl p-5 space-y-4">
+            <h2 class="text-base font-bold text-white">Interactive Policy Decision Simulator</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs text-slate-400 mb-1">Action Name</label>
+                <select id="simActionSelect" class="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-xs text-white">
+                  <option value="app_restart_workers">app_restart_workers</option>
+                  <option value="app_flush_cache">app_flush_cache</option>
+                  <option value="app_rollback_release">app_rollback_release</option>
+                  <option value="kubernetes_scale_deployment">kubernetes_scale_deployment</option>
+                  <option value="aws_terminate_instance">aws_terminate_instance</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs text-slate-400 mb-1">Risk Level</label>
+                <select id="simRiskSelect" class="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-xs text-white">
+                  <option value="LOW">LOW</option>
+                  <option value="MEDIUM">MEDIUM</option>
+                  <option value="HIGH">HIGH</option>
+                  <option value="CRITICAL">CRITICAL</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs text-slate-400 mb-1">Environment</label>
+                <select id="simEnvSelect" class="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-xs text-white">
+                  <option value="PRODUCTION">PRODUCTION</option>
+                  <option value="STAGING">STAGING</option>
+                </select>
+              </div>
+            </div>
+            <button id="runPolicySimBtn" class="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold">
+              Simulate Policy Engine Evaluation
+            </button>
+            <div id="policySimResultBox" class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 text-xs space-y-1"></div>
+          </div>
+
+          <!-- Active Guardrail Policies & Worker Fleet -->
+          <div class="glass-card rounded-2xl p-5 space-y-4">
+            <h2 class="text-base font-bold text-white">Active Guardrail Policies &amp; Worker Fleet</h2>
+            <div id="policiesAndWorkersBox" class="space-y-3"></div>
+          </div>
+        </div>
+
+        <!-- Audit Log Table -->
+        <div class="glass-card rounded-2xl p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-bold text-white">Cryptographic Security &amp; Operational Audit Trail</h2>
+            <span id="auditCountBadge" class="text-xs font-mono text-slate-400"></span>
+          </div>
+          <div class="overflow-x-auto max-h-80 overflow-y-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="border-b border-slate-800 text-slate-400 uppercase">
+                  <th class="py-2.5 px-3">Timestamp</th>
+                  <th class="py-2.5 px-3">Action</th>
+                  <th class="py-2.5 px-3">Resource Type</th>
+                  <th class="py-2.5 px-3">Target ID</th>
+                  <th class="py-2.5 px-3">Outcome</th>
+                  <th class="py-2.5 px-3">Metadata</th>
+                </tr>
+              </thead>
+              <tbody id="auditTableBody" class="divide-y divide-slate-800/60 font-mono"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Modal: Connect DevOps Tool -->
+  <div id="addToolModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="glass-panel rounded-2xl max-w-md w-full p-6 space-y-4 border border-slate-700">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold text-white">Connect New DevOps Tool</h3>
+        <button id="closeAddToolModalBtn" class="text-slate-400 hover:text-white text-sm">✕</button>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Integration Name</label>
+          <input id="newToolName" type="text" placeholder="e.g. ArgoCD GitOps Controller" class="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-white" />
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Provider Type</label>
+          <select id="newToolProvider" class="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-white">
+            <option value="kubernetes">Kubernetes</option>
+            <option value="docker">Docker Engine</option>
+            <option value="prometheus">Prometheus</option>
+            <option value="ansible">Ansible Controller</option>
+            <option value="terraform">Terraform Cloud</option>
+            <option value="grafana">Grafana</option>
+            <option value="aws">AWS Cloud</option>
+            <option value="nagios">Nagios Core</option>
+            <option value="custom_tool">InfraTrack App SDK Tool</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Endpoint / Base URL</label>
+          <input id="newToolUrl" type="text" placeholder="http://localhost:8080" class="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-white" />
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button id="cancelAddToolBtn" class="px-4 py-2 rounded-xl text-xs bg-slate-800 text-slate-300">Cancel</button>
+        <button id="confirmAddToolBtn" class="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white">Connect Tool</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Create Playbook -->
+  <div id="createPlaybookModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="glass-panel rounded-2xl max-w-md w-full p-6 space-y-4 border border-slate-700">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold text-white">Create Automation Playbook</h3>
+        <button id="closeCreatePlaybookModalBtn" class="text-slate-400 hover:text-white text-sm">✕</button>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Playbook Name</label>
+          <input id="newPbName" type="text" placeholder="e.g. Drain &amp; Restart Degraded Pod" class="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-white" />
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Description</label>
+          <input id="newPbDesc" type="text" placeholder="Automated remediation with post-execution verification" class="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-white" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Action</label>
+            <select id="newPbAction" class="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-xs text-white">
+              <option value="app_restart_workers">app_restart_workers</option>
+              <option value="app_flush_cache">app_flush_cache</option>
+              <option value="app_scale_replicas">app_scale_replicas</option>
+              <option value="app_rollback_release">app_rollback_release</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Risk Level</label>
+            <select id="newPbRisk" class="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-xs text-white">
+              <option value="LOW">LOW (Auto-Run)</option>
+              <option value="MEDIUM">MEDIUM</option>
+              <option value="HIGH">HIGH (Approval Gate)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button id="cancelCreatePbBtn" class="px-4 py-2 rounded-xl text-xs bg-slate-800 text-slate-300">Cancel</button>
+        <button id="confirmCreatePbBtn" class="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white">Save Playbook</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Resource Logs & Metrics Inspector -->
+  <div id="resourceInspectorModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="glass-panel rounded-2xl max-w-2xl w-full p-6 space-y-4 border border-slate-700">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 id="inspectResTitle" class="text-lg font-bold text-white">Resource Telemetry &amp; Logs</h3>
+          <p id="inspectResSub" class="text-xs font-mono text-slate-400"></p>
+        </div>
+        <button id="closeResInspectorBtn" class="text-slate-400 hover:text-white text-sm">✕</button>
+      </div>
+      <div id="inspectResMetrics" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+      <div id="inspectResLogs" class="p-4 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-slate-300 space-y-1 max-h-56 overflow-y-auto"></div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // INFRATRACK UNIFIED CONTROL PLANE STATE ENGINE
+    // =========================================================================
+    const state = {
+      currentView: 'dashboard',
+      resourceFilter: 'ALL',
+      demoApp: {
+        id: 'app-nexuspay-demo-002',
+        name: 'NexusPay Order & Payment Gateway',
+        version: 'v2.3.1',
+        status: 'HEALTHY',
+        endpoint: 'http://127.0.0.1:5055',
+        replicas: 3,
+        workerCpu: 18.2,
+        redisMemoryMb: 142.0,
+        dbConnections: 42,
+        errorRate: 0.0,
+        requestsTotal: 1480,
+        errorsTotal: 0,
+        activeChaos: null,
+        txLogs: [
+          '[06:30:01 UTC] SDK Agent registered application "NexusPay Order & Payment Gateway" (5 actions exposed)',
+          '[06:30:05 UTC] Prometheus scrape HTTP 200 OK (/metrics) — worker_cpu=18.2%, error_rate=0.0%',
+          '[06:30:12 UTC] POST /api/payments ($250.00 USD) -> HTTP 200 SETTLED (v2.3.1, 4.1ms)'
+        ]
+      },
+      applications: [
+        {
+          id: 'app-nexuspay-demo-002',
+          name: 'NexusPay Order & Payment Gateway',
+          description: 'Cloud-Native Fintech Demo App connected via InfraTrack Python SDK as a controllable tool',
+          status: 'HEALTHY',
+          owner_team: 'Core Payments SRE',
+          sdk_connected: true,
+          endpoint_url: 'http://127.0.0.1:5055',
+          resource_count: 4
+        },
+        {
+          id: 'app-weather-stack-001',
+          name: 'Weather Telemetry Service',
+          description: 'Express + Redis + Prometheus monitored microservice stack',
+          status: 'HEALTHY',
+          owner_team: 'Observability Team',
+          sdk_connected: true,
+          endpoint_url: 'http://localhost:4000',
+          resource_count: 2
+        }
+      ],
+      tools: [
+        { id: 'int-nexus-sdk', name: 'NexusPay App SDK Tool Agent', provider: 'custom_tool', status: 'HEALTHY', circuit_state: 'CLOSED', endpoint: 'http://127.0.0.1:5055', desc: 'Live connected Demo App exposing SDK health, chaos & remediation hooks' },
+        { id: 'int-docker-01', name: 'Production Docker Engine', provider: 'docker', status: 'HEALTHY', circuit_state: 'CLOSED', endpoint: 'unix:///var/run/docker.sock', desc: 'Container lifecycle, stats & log streaming adapter' },
+        { id: 'int-k8s-01', name: 'k3s Production Cluster', provider: 'kubernetes', status: 'HEALTHY', circuit_state: 'CLOSED', endpoint: 'https://127.0.0.1:6444', desc: 'Kubernetes deployment scaling, rollout & pod verification' },
+        { id: 'int-prom-01', name: 'Prometheus Alertmanager & TSDB', provider: 'prometheus', status: 'HEALTHY', circuit_state: 'CLOSED', endpoint: 'http://localhost:9090', desc: 'Real-time metrics scraping & webhook alert ingestion' },
+        { id: 'int-ansible-01', name: 'Ansible Automation Runner', provider: 'ansible', status: 'HEALTHY', circuit_state: 'CLOSED', endpoint: 'http://localhost:5001', desc: 'Playbook execution engine for self-healing runbooks' },
+        { id: 'int-grafana-01', name: 'Grafana Observability Dashboards', provider: 'grafana', status: 'HEALTHY', circuit_state: 'CLOSED', endpoint: 'http://localhost:3001', desc: 'Unified golden signals & SLO visualization' },
+        { id: 'int-tf-01', name: 'Terraform Cloud IaC', provider: 'terraform', status: 'HEALTHY', circuit_state: 'CLOSED', endpoint: 'https://app.terraform.io', desc: 'Infrastructure state drift detection & workspace management' },
+        { id: 'int-aws-01', name: 'AWS Cloud Production (us-east-1)', provider: 'aws', status: 'HEALTHY', circuit_state: 'CLOSED', endpoint: 'us-east-1 (Boto3)', desc: 'EC2 Auto-Scaling Groups, RDS PostgreSQL & S3 buckets' }
+      ],
+      resources: [
+        { id: 'res-nexus-gw', appId: 'app-nexuspay-demo-002', name: 'nexuspay-api-gateway', displayName: 'NexusPay API Gateway (Deployment)', provider: 'kubernetes', type: 'KUBERNETES_DEPLOYMENT', status: 'ACTIVE', cpu: 24.5, memoryMb: 312, replicas: 3, version: 'v2.3.1' },
+        { id: 'res-nexus-worker', appId: 'app-nexuspay-demo-002', name: 'nexuspay-payment-worker-01', displayName: 'NexusPay Payment Worker Container', provider: 'docker', type: 'CONTAINER', status: 'ACTIVE', cpu: 18.2, memoryMb: 248, replicas: 1, version: 'v2.3.1' },
+        { id: 'res-nexus-redis', appId: 'app-nexuspay-demo-002', name: 'nexuspay-redis-cache', displayName: 'NexusPay Redis Idempotency Cache', provider: 'docker', type: 'CONTAINER', status: 'ACTIVE', cpu: 9.4, memoryMb: 142, replicas: 1, version: '7.2-alpine' },
+        { id: 'res-nexus-db', appId: 'app-nexuspay-demo-002', name: 'nexuspay-ledger-primary', displayName: 'NexusPay PostgreSQL Ledger RDS', provider: 'aws', type: 'DATABASE_INSTANCE', status: 'ACTIVE', cpu: 15.1, memoryMb: 640, replicas: 1, version: 'pg-16.3' },
+        { id: 'res-weather-api', appId: 'app-weather-stack-001', name: 'weather-api-service', displayName: 'Weather API Node.js Container', provider: 'docker', type: 'CONTAINER', status: 'ACTIVE', cpu: 14.8, memoryMb: 185, replicas: 1, version: 'v1.4.0' },
+        { id: 'res-weather-redis', appId: 'app-weather-stack-001', name: 'weather-redis-cache', displayName: 'Weather Redis Counter Cache', provider: 'docker', type: 'CONTAINER', status: 'ACTIVE', cpu: 5.1, memoryMb: 64, replicas: 1, version: '7.0-alpine' }
+      ],
+      incidents: [],
+      alerts: [],
+      playbooks: [
+        { id: 'pb-restart-workers', name: 'Restart NexusPay Worker Pool & Verify Health', desc: 'Gracefully restarts payment worker containers and verifies HTTP /health and Prometheus metrics.', trigger: 'INCIDENT', risk: 'LOW', action: 'app_restart_workers', steps: 3 },
+        { id: 'pb-flush-redis', name: 'Flush Stale Cache & Reset DB Connection Pool', desc: 'Clears stale idempotency keys in Redis and resets leaked database connections.', trigger: 'MANUAL', risk: 'LOW', action: 'app_flush_cache', steps: 2 },
+        { id: 'pb-scale-k8s', name: 'Scale Kubernetes Deployment Replicas (Auto-Scale)', desc: 'Horizontally scales Kubernetes deployment replicas during traffic or latency spikes.', trigger: 'ALERT', risk: 'MEDIUM', action: 'app_scale_replicas', steps: 2 },
+        { id: 'pb-rollback-canary', name: 'Emergency Production Canary Rollback', desc: 'Rolls back bad canary deployment to v2.3.1. Gated by human approval policy in production.', trigger: 'INCIDENT', risk: 'HIGH', action: 'app_rollback_release', steps: 2 }
+      ],
+      executions: [
+        { id: 'exec-629078a7', playbookId: 'pb-restart-workers', workflowName: 'Restart NexusPay Worker Pool & Verify Health', risk: 'LOW', status: 'SUCCEEDED', target: 'res-nexus-worker', startedAt: '2026-11-06 06:28:14 UTC' },
+        { id: 'exec-81bc0412', playbookId: 'pb-rollback-canary', workflowName: 'Emergency Production Canary Rollback', risk: 'HIGH', status: 'SUCCEEDED', target: 'res-nexus-gw', startedAt: '2026-11-06 06:29:40 UTC' }
+      ],
+      approvals: [],
+      eventsProcessed: 48,
+      liveStream: [
+        { time: '06:30:12', type: 'VERIFY', source: 'workflow_engine', msg: 'Closed-loop verification PASSED for NexusPay API Gateway (v2.3.1)' },
+        { time: '06:29:55', type: 'AUDIT', source: 'policy_engine', msg: 'Policy evaluation ALLOW for low-risk playbook pb-restart-workers' },
+        { time: '06:29:10', type: 'SDK', source: 'custom_tool', msg: 'NexusPay Demo App connected via InfraTrack Python SDK (5 actions registered)' },
+        { time: '06:28:00', type: 'DISCOVERY', source: 'kubernetes', msg: 'Synchronized 6 resources & 4 dependency edges across k3s, Docker & AWS' }
+      ],
+      audits: [
+        { time: '2026-11-06 06:30:12', action: 'INCIDENT_RESOLVED', rtype: 'INCIDENT', rid: 'inc-b9bc3086', result: 'SUCCESS', meta: 'playbook=Emergency Production Canary Rollback' },
+        { time: '2026-11-06 06:29:50', action: 'APPROVAL_GRANTED', rtype: 'APPROVAL', rid: 'appr-a6c63990', result: 'SUCCESS', meta: 'actor=admin@infratrack.io' },
+        { time: '2026-11-06 06:28:14', action: 'EXECUTION_SUCCEEDED', rtype: 'EXECUTION', rid: 'exec-629078a7', result: 'SUCCESS', meta: 'playbook=Restart NexusPay Worker Pool' },
+        { time: '2026-11-06 06:25:00', action: 'APPLICATION_REGISTERED', rtype: 'APPLICATION', rid: 'app-nexuspay-demo-002', result: 'SUCCESS', meta: 'sdk=v2.0.0' },
+        { time: '2026-11-06 06:24:10', action: 'CONTROL_PLANE_INITIALIZED', rtype: 'SYSTEM', rid: 'infratrack-core', result: 'SUCCESS', meta: 'tools=8, policies=3' }
+      ]
+    };
+
+    let telemetryChart = null;
+
+    function nowTimeShort() {
+      const d = new Date();
+      return d.toTimeString().slice(0, 8);
+    }
+
+    function showToast(title, message, tone = 'indigo') {
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+      const colors = {
+        indigo: 'border-indigo-500/50 bg-slate-900/95 text-indigo-200',
+        emerald: 'border-emerald-500/50 bg-slate-900/95 text-emerald-200',
+        rose: 'border-rose-500/50 bg-slate-900/95 text-rose-200',
+        amber: 'border-amber-500/50 bg-slate-900/95 text-amber-200'
+      };
+      const el = document.createElement('div');
+      el.className = `p-3.5 rounded-xl border shadow-xl pointer-events-auto transition-all ${colors[tone] || colors.indigo}`;
+      el.innerHTML = `<div class="text-xs font-bold">${title}</div><div class="text-[11px] text-slate-300 mt-0.5">${message}</div>`;
+      container.appendChild(el);
+      setTimeout(() => {
+        el.remove();
+      }, 4200);
+    }
+
+    function addStreamEvent(type, source, msg) {
+      state.eventsProcessed += 1;
+      state.liveStream.unshift({ time: nowTimeShort(), type, source, msg });
+      if (state.liveStream.length > 25) state.liveStream.pop();
+    }
+
+    function addAuditEvent(action, rtype, rid, result, meta) {
+      state.audits.unshift({
+        time: '2026-11-06 ' + nowTimeShort(),
+        action,
+        rtype,
+        rid,
+        result,
+        meta
+      });
+    }
+
+    // =========================================================================
+    // NAVIGATION & VIEW SWITCHING
+    // =========================================================================
+    function switchView(viewName) {
+      state.currentView = viewName;
+      document.querySelectorAll('.view-section').forEach(sec => {
+        sec.classList.toggle('hidden', sec.id !== `view-${viewName}`);
+      });
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        const active = btn.getAttribute('data-view') === viewName;
+        btn.className = active
+          ? 'nav-btn w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all bg-indigo-600/20 text-indigo-300 border border-indigo-500/30'
+          : 'nav-btn w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white transition-all';
+      });
+      renderAll();
+    }
+
+    // =========================================================================
+    // CHAOS INJECTION, SDK ACTIONS & CLOSED-LOOP AUTO-REMEDIATION
+    // =========================================================================
+    function injectChaosScenario(scenario) {
+      const idSuffix = Math.random().toString(16).slice(2, 8);
+      const incId = `inc-${idSuffix}`;
+      const alertId = `alt-${idSuffix}`;
+
+      state.demoApp.activeChaos = scenario;
+      state.demoApp.status = 'CRITICAL';
+      const nexusApp = state.applications.find(a => a.id === 'app-nexuspay-demo-002');
+      if (nexusApp) nexusApp.status = 'CRITICAL';
+
+      let title = '';
+      let desc = '';
+      let severity = 'CRITICAL';
+      let targetResId = 'res-nexus-worker';
+      let recommendedPlaybook = 'pb-restart-workers';
+
+      if (scenario === 'worker_pool_exhaustion') {
+        state.demoApp.workerCpu = 98.4;
+        state.demoApp.errorRate = 45.0;
+        title = '[NexusPayWorkerPoolExhausted] Payment settlement worker CPU at 98.4%';
+        desc = 'Worker threads deadlocked waiting on settlement lock; p99 latency > 4,800ms.';
+        targetResId = 'res-nexus-worker';
+        recommendedPlaybook = 'pb-restart-workers';
+      } else if (scenario === 'redis_latency_spike') {
+        state.demoApp.redisMemoryMb = 498.5;
+        state.demoApp.dbConnections = 194;
+        state.demoApp.errorRate = 25.0;
+        severity = 'WARNING';
+        title = '[NexusPayRedisCacheEvictionStorm] Redis cache at 97% (498.5MB) & DB connection leak';
+        desc = 'Stale idempotency keys saturating Redis memory and leaking Postgres connections (194/200).';
+        targetResId = 'res-nexus-redis';
+        recommendedPlaybook = 'pb-flush-redis';
+      } else {
+        state.demoApp.version = 'v2.4.0-rc1';
+        state.demoApp.errorRate = 62.0;
+        title = '[NexusPayCanaryHigh5xxRate] Canary release v2.4.0-rc1 throwing 62% HTTP 500 errors';
+        desc = 'Canary deployment regression on /api/payments; immediate rollback to v2.3.1 required.';
+        targetResId = 'res-nexus-gw';
+        recommendedPlaybook = 'pb-rollback-canary';
+      }
+
+      const resObj = state.resources.find(r => r.id === targetResId);
+      if (resObj) {
+        resObj.status = severity === 'CRITICAL' ? 'FAILED' : 'DEGRADED';
+        resObj.cpu = 96.8;
+      }
+
+      state.alerts.unshift({
+        id: alertId,
+        title,
+        severity,
+        status: 'ACTIVE',
+        provider: 'prometheus',
+        resourceId: targetResId,
+        time: nowTimeShort()
+      });
+
+      state.incidents.unshift({
+        id: incId,
+        title,
+        description: desc,
+        severity,
+        priority: severity === 'CRITICAL' ? 'P1' : 'P2',
+        status: 'OPEN',
+        resourceId: targetResId,
+        recommendedPlaybook,
+        openedAt: '2026-11-06 ' + nowTimeShort(),
+        timeline: [
+          { time: nowTimeShort(), type: 'RAW_EVENT_INGESTED', msg: `Prometheus Alertmanager webhook received (${alertId})` },
+          { time: nowTimeShort(), type: 'INCIDENT_CORRELATED', msg: `Correlated alert onto primary resource ${targetResId}` }
+        ]
+      });
+
+      state.demoApp.txLogs.unshift(`[${nowTimeShort()} UTC] ⚡ CHAOS INJECTED (${scenario}) -> Alert ${alertId} correlated into Incident ${incId}`);
+      addStreamEvent('ALERT', 'prometheus', title);
+      addAuditEvent('CHAOS_INCIDENT_OPENED', 'INCIDENT', incId, 'SUCCESS', `scenario=${scenario}, resource=${targetResId}`);
+      updateChartDataSpike(true);
+      renderAll();
+      showToast('Chaos Incident Correlated', `${title} (${incId})`, 'rose');
+      return incId;
+    }
+
+    function executePlaybook(playbookId, incidentId = null, forceAutoApprove = false) {
+      const pb = state.playbooks.find(p => p.id === playbookId || p.name === playbookId) || state.playbooks[0];
+      const exId = `exec-${Math.random().toString(16).slice(2, 8)}`;
+      const inc = incidentId ? state.incidents.find(i => i.id === incidentId) : state.incidents.find(i => i.status === 'OPEN');
+      const targetRes = inc ? inc.resourceId : 'res-nexus-worker';
+
+      if (pb.risk === 'HIGH' && !forceAutoApprove) {
+        const apprId = `appr-${Math.random().toString(16).slice(2, 8)}`;
+        state.executions.unshift({
+          id: exId,
+          playbookId: pb.id,
+          workflowName: pb.name,
+          risk: pb.risk,
+          status: 'WAITING_APPROVAL',
+          target: targetRes,
+          startedAt: '2026-11-06 ' + nowTimeShort()
+        });
+        state.approvals.unshift({
+          id: apprId,
+          executionId: exId,
+          workflowName: pb.name,
+          risk: pb.risk,
+          target: targetRes,
+          incidentId: inc ? inc.id : null,
+          status: 'PENDING',
+          requestedAt: '2026-11-06 ' + nowTimeShort()
+        });
+        if (inc) {
+          inc.status = 'APPROVAL_REQUIRED';
+          inc.timeline.push({ time: nowTimeShort(), type: 'APPROVAL_REQUESTED', msg: `Playbook "${pb.name}" gated by HIGH-risk production policy (${apprId})` });
+        }
+        addStreamEvent('POLICY_GATE', 'policy_engine', `Approval required (${apprId}) for "${pb.name}"`);
+        addAuditEvent('EXECUTION_AWAITING_APPROVAL', 'APPROVAL', apprId, 'SUCCESS', `playbook=${pb.id}`);
+        renderAll();
+        showToast('Human Approval Required', `"${pb.name}" is HIGH risk in PRODUCTION. Authorize it in Approvals or via CLI.`, 'amber');
+        return { executionId: exId, status: 'WAITING_APPROVAL', approvalId: apprId };
+      }
+
+      // Immediate execution & closed-loop recovery
+      state.executions.unshift({
+        id: exId,
+        playbookId: pb.id,
+        workflowName: pb.name,
+        risk: pb.risk,
+        status: 'SUCCEEDED',
+        target: targetRes,
+        startedAt: '2026-11-06 ' + nowTimeShort()
+      });
+
+      completeHealingForExecution(pb, inc, targetRes, exId);
+      renderAll();
+      showToast('Playbook Succeeded & Verified', `"${pb.name}" (${exId}) healed ${targetRes}`, 'emerald');
+      return { executionId: exId, status: 'SUCCEEDED' };
+    }
+
+    function completeHealingForExecution(pb, inc, targetRes, exId) {
+      state.demoApp.status = 'HEALTHY';
+      state.demoApp.activeChaos = null;
+      state.demoApp.errorRate = 0.0;
+      state.demoApp.workerCpu = 16.4;
+      state.demoApp.redisMemoryMb = 118.0;
+      state.demoApp.dbConnections = 34;
+      state.demoApp.version = 'v2.3.1';
+      if (pb.action === 'app_scale_replicas') {
+        state.demoApp.replicas = 5;
+      }
+
+      const nexusApp = state.applications.find(a => a.id === 'app-nexuspay-demo-002');
+      if (nexusApp) nexusApp.status = 'HEALTHY';
+
+      state.resources.forEach(r => {
+        if (!targetRes || r.id === targetRes || r.status !== 'ACTIVE') {
+          r.status = 'ACTIVE';
+          r.cpu = 16.4;
+          if (pb.action === 'app_scale_replicas' && r.id === 'res-nexus-gw') r.replicas = 5;
+        }
+      });
+
+      state.alerts.forEach(a => {
+        if (!targetRes || a.resourceId === targetRes) a.status = 'RESOLVED';
+      });
+
+      if (inc) {
+        inc.status = 'RESOLVED';
+        inc.timeline.push({ time: nowTimeShort(), type: 'AUTOMATION_SUCCEEDED', msg: `Executed "${pb.name}" (${exId}) via InfraTrack SDK` });
+        inc.timeline.push({ time: nowTimeShort(), type: 'VERIFICATION_PASSED', msg: `Prometheus & /health probe verified 0% error rate — Incident RESOLVED` });
+      }
+
+      state.demoApp.txLogs.unshift(`[${nowTimeShort()} UTC] ✔ REMEDIATED via "${pb.name}" (${exId}) -> NexusPay HEALTHY (error_rate=0%)`);
+      addStreamEvent('HEALED', 'workflow_engine', `Playbook "${pb.name}" (${exId}) resolved incident & verified health`);
+      addAuditEvent('EXECUTION_SUCCEEDED', 'EXECUTION', exId, 'SUCCESS', `playbook=${pb.name}`);
+      updateChartDataSpike(false);
+    }
+
+    function decideApproval(approvalId, decision) {
+      const appr = state.approvals.find(a => a.id === approvalId);
+      if (!appr || appr.status !== 'PENDING') return;
+      appr.status = decision;
+      const ex = state.executions.find(e => e.id === appr.executionId);
+      const inc = appr.incidentId ? state.incidents.find(i => i.id === appr.incidentId) : null;
+      const pb = state.playbooks.find(p => p.name === appr.workflowName) || state.playbooks[3];
+
+      if (decision === 'APPROVED') {
+        if (ex) ex.status = 'SUCCEEDED';
+        completeHealingForExecution(pb, inc, appr.target, appr.executionId);
+        addAuditEvent('APPROVAL_GRANTED', 'APPROVAL', approvalId, 'SUCCESS', `execution=${appr.executionId}`);
+        showToast('Approval Granted', `Executed "${appr.workflowName}" and verified service recovery.`, 'emerald');
+      } else {
+        if (ex) ex.status = 'REJECTED';
+        addAuditEvent('APPROVAL_REJECTED', 'APPROVAL', approvalId, 'SUCCESS', `execution=${appr.executionId}`);
+        showToast('Approval Rejected', `Execution ${appr.executionId} was cancelled.`, 'rose');
+      }
+      renderAll();
+    }
+
+    function autoHealAll() {
+      const openIncs = state.incidents.filter(i => i.status !== 'RESOLVED');
+      if (openIncs.length === 0 && state.demoApp.status === 'HEALTHY') {
+        showToast('System Nominal', 'All connected tools, resources, and applications are already HEALTHY.', 'emerald');
+        return;
+      }
+      if (openIncs.length === 0) {
+        executePlaybook('pb-restart-workers', null, true);
+        return;
+      }
+      openIncs.forEach(inc => {
+        executePlaybook(inc.recommendedPlaybook || 'pb-restart-workers', inc.id, true);
+      });
+      state.approvals.forEach(a => {
+        if (a.status === 'PENDING') a.status = 'APPROVED';
+      });
+      renderAll();
+    }
+
+    // =========================================================================
+    // CLI COMMAND PARSER & EXECUTOR (SYNCED WITH WEB UI)
+    // =========================================================================
+    function executeCliCommand(rawCmd) {
+      const cmd = rawCmd.trim();
+      if (!cmd) return;
+      const outWin = document.getElementById('cliOutputWindow');
+      const parts = cmd.replace(/^infrapilot\b/, 'infratrack').split(/\s+/);
+      let responseText = '';
+
+      if (cmd === 'help' || cmd === 'infratrack --help' || cmd === 'infratrack help') {
+        responseText = [
+          'InfraTrack / InfraPilot — Unified DevOps Control Plane CLI (v2.0.0)',
+          'Usage: infratrack [OPTIONS] COMMAND [ARGS]...',
+          '',
+          'Core Command Groups:',
+          '  status                 Display full Control Plane telemetry, tools & active incidents',
+          '  apps list|inspect      Manage connected applications (NexusPay, Weather Service)',
+          '  tools list|capabilities|validate|enable|disable  Manage DevOps tool integrations',
+          '  resources list|topology|action <id> <start|stop|restart|scale>  Control resources',
+          '  incidents list|inspect|ack|resolve|remediate <id>  Correlated incident lifecycle',
+          '  automation playbooks|run|executions|approvals|approve <id>  Runbooks & approvals',
+          '  policies list|simulate --action <act> --risk <lvl>  Governance & policy simulator',
+          '  demo chaos|heal        Inject chaos into NexusPay Demo App or run closed-loop heal',
+          '  audit list             View cryptographic security & automation audit trail'
+        ].join('\n');
+      } else if (parts[1] === 'status' || parts.length === 1) {
+        const openIncs = state.incidents.filter(i => i.status !== 'RESOLVED');
+        const healthyTools = state.tools.filter(t => t.status === 'HEALTHY').length;
+        const pendingAppr = state.approvals.filter(a => a.status === 'PENDING').length;
+        responseText = [
+          '╭────────────────────────── Control Plane Telemetry ───────────────────────────╮',
+          '│ InfraTrack DevOps Control Plane v2.0.0                                       │',
+          `│ ● SYSTEM ${openIncs.length ? 'DEGRADED' : 'HEALTHY '}  |  Connected Apps: ${state.applications.length}  |  Healthy Tools: ${healthyTools}/${state.tools.length}  |  Resources: ${state.resources.length} │`,
+          `│ Open Incidents: ${openIncs.length}  |  Active Alerts: ${state.alerts.filter(a=>a.status==='ACTIVE').length}  |  Automations Run: ${state.executions.length}  |  Approvals: ${pendingAppr} │`,
+          '╰──────────────────────────────────────────────────────────────────────────────╯',
+          '',
+          'ID              TOOL / INTEGRATION                 PROVIDER     HEALTH    CIRCUIT',
+          '─────────────────────────────────────────────────────────────────────────────────',
+          ...state.tools.map(t => `${t.id.padEnd(15)} ${t.name.padEnd(34)} ${t.provider.toUpperCase().padEnd(12)} ${t.status.padEnd(9)} ${t.circuit_state}`)
+        ].join('\n');
+      } else if (parts[1] === 'apps') {
+        responseText = [
+          'APP ID                  APPLICATION NAME                    STATUS    SDK      RESOURCES  ENDPOINT',
+          '──────────────────────────────────────────────────────────────────────────────────────────────────────────',
+          ...state.applications.map(a => `${a.id.padEnd(23)} ${a.name.padEnd(35)} ${a.status.padEnd(9)} v2.0     ${String(a.resource_count).padEnd(10)} ${a.endpoint_url}`)
+        ].join('\n');
+      } else if (parts[1] === 'tools' && parts[2] === 'capabilities') {
+        responseText = [
+          'PROVIDER      DISPLAY NAME                        READ OPERATIONS                    MUTATION OPERATIONS',
+          '────────────────────────────────────────────────────────────────────────────────────────────────────────────────',
+          'DOCKER        Docker Engine                       collect_info, inspect, logs        start, stop, restart_container',
+          'KUBERNETES    Kubernetes Control Plane            collect_pod, verify_deployment     scale_deployment, restart_pod',
+          'PROMETHEUS    Prometheus & Alertmanager           prometheus_query, read_alerts      (webhook alert producer)',
+          'ANSIBLE       Ansible Automation Runner           check_service, check_disk_usage    restart_service, rollback_config',
+          'TERRAFORM     Terraform Cloud IaC                 get_workspace, list_runs           terraform_trigger_run',
+          'AWS           Amazon Web Services (Boto3)         collect_instance, collect_rds      start/stop/reboot_instance, asg',
+          'CUSTOM_TOOL   InfraTrack Connected App SDK Tool   app_health_check, inspect_workers  restart_workers, flush_cache, rollback'
+        ].join('\n');
+      } else if (parts[1] === 'tools') {
+        responseText = [
+          'TOOL ID         NAME                               PROVIDER      STATUS     CIRCUIT   ENDPOINT',
+          '──────────────────────────────────────────────────────────────────────────────────────────────────────────',
+          ...state.tools.map(t => `${t.id.padEnd(15)} ${t.name.padEnd(34)} ${t.provider.toUpperCase().padEnd(13)} ${t.status.padEnd(10)} ${t.circuit_state.padEnd(9)} ${t.endpoint}`)
+        ].join('\n');
+      } else if (parts[1] === 'resources' && parts[2] === 'topology') {
+        const gw = state.resources.find(r => r.id === 'res-nexus-gw');
+        const wk = state.resources.find(r => r.id === 'res-nexus-worker');
+        const rd = state.resources.find(r => r.id === 'res-nexus-redis');
+        const db = state.resources.find(r => r.id === 'res-nexus-db');
+        responseText = [
+          '🌐 InfraTrack Infrastructure Dependency Graph',
+          `├── ${gw.displayName} (KUBERNETES • replicas=${gw.replicas}) [${gw.status}]`,
+          `│   ├── ──[ROUTES_TO]──> ${wk.displayName} (DOCKER • cpu=${wk.cpu}%) [${wk.status}]`,
+          `│   │   └── ──[CONNECTS_TO]──> ${db.displayName} (AWS RDS) [${db.status}]`,
+          `│   └── ──[DEPENDS_ON]──> ${rd.displayName} (DOCKER • mem=${rd.memoryMb}MB) [${rd.status}]`,
+          '└── Weather API Node.js Container (DOCKER • container) [ACTIVE]',
+          '    └── ──[DEPENDS_ON]──> Weather Redis Counter Cache (DOCKER) [ACTIVE]'
+        ].join('\n');
+      } else if (parts[1] === 'resources') {
+        responseText = [
+          'RESOURCE ID       DISPLAY NAME                              PROVIDER     TYPE                     STATUS    CPU%',
+          '────────────────────────────────────────────────────────────────────────────────────────────────────────────────',
+          ...state.resources.map(r => `${r.id.padEnd(17)} ${r.displayName.padEnd(41)} ${r.provider.toUpperCase().padEnd(12)} ${r.type.padEnd(24)} ${r.status.padEnd(9)} ${r.cpu}%`)
+        ].join('\n');
+      } else if (parts[1] === 'demo' && parts[2] === 'chaos') {
+        const scIdx = parts.indexOf('--scenario');
+        const scenario = scIdx !== -1 && parts[scIdx + 1] ? parts[scIdx + 1] : 'worker_pool_exhaustion';
+        const incId = injectChaosScenario(scenario);
+        responseText = [
+          `⚡ CHAOS SCENARIO INJECTED: ${scenario}`,
+          `  Target Application : NexusPay Order & Payment Gateway (http://127.0.0.1:5055)`,
+          `  Correlated Incident: ${incId} [OPEN]`,
+          `  Tip: Run 'infratrack demo heal' or 'infratrack incidents remediate ${incId}' to resolve.`
+        ].join('\n');
+      } else if (parts[1] === 'demo' && parts[2] === 'heal') {
+        autoHealAll();
+        responseText = '✔ Closed-Loop Auto-Remediation complete: all open Demo App incidents resolved & verified (HTTP 200 OK).';
+      } else if (parts[1] === 'incidents') {
+        if (state.incidents.length === 0) {
+          responseText = '✔ Zero active incidents. All monitored services are healthy.';
+        } else {
+          responseText = [
+            'INCIDENT ID    PRIORITY  SEVERITY   STATUS               TITLE',
+            '─────────────────────────────────────────────────────────────────────────────────────────────────────',
+            ...state.incidents.map(i => `${i.id.padEnd(14)} ${i.priority.padEnd(9)} ${i.severity.padEnd(10)} ${i.status.padEnd(20)} ${i.title}`)
+          ].join('\n');
+        }
+      } else if (parts[1] === 'automation' && parts[2] === 'playbooks') {
+        responseText = [
+          'PLAYBOOK ID          NAME                                               RISK     TRIGGER   STEPS',
+          '─────────────────────────────────────────────────────────────────────────────────────────────────',
+          ...state.playbooks.map(p => `${p.id.padEnd(20)} ${p.name.padEnd(50)} ${p.risk.padEnd(8)} ${p.trigger.padEnd(9)} ${p.steps}`)
+        ].join('\n');
+      } else if (parts[1] === 'automation' && parts[2] === 'approvals') {
+        if (state.approvals.length === 0) {
+          responseText = 'No pending or historical approvals.';
+        } else {
+          responseText = [
+            'APPROVAL ID     EXECUTION ID    STATUS     WORKFLOW',
+            '───────────────────────────────────────────────────────────────────────────────────',
+            ...state.approvals.map(a => `${a.id.padEnd(15)} ${a.executionId.padEnd(15)} ${a.status.padEnd(10)} ${a.workflowName}`)
+          ].join('\n');
+        }
+      } else if (parts[1] === 'automation' && parts[2] === 'approve' && parts[3]) {
+        decideApproval(parts[3], 'APPROVED');
+        responseText = `✔ Approval ${parts[3]} GRANTED -> Execution SUCCEEDED and target resource healed.`;
+      } else if (parts[1] === 'policies' && parts[2] === 'simulate') {
+        const actIdx = parts.indexOf('--action');
+        const riskIdx = parts.indexOf('--risk');
+        const action = actIdx !== -1 && parts[actIdx + 1] ? parts[actIdx + 1] : 'aws_terminate_instance';
+        const risk = riskIdx !== -1 && parts[riskIdx + 1] ? parts[riskIdx + 1] : 'CRITICAL';
+        const res = evaluatePolicySimulation(action, risk, 'PRODUCTION');
+        responseText = [
+          `Policy Simulation: action=${action}, risk=${risk}, env=PRODUCTION`,
+          `  Decision        : ${res.decision}`,
+          `  Matched Policy  : ${res.matchedPolicy}`,
+          `  Reason          : ${res.reason}`
+        ].join('\n');
+      } else if (parts[1] === 'audit') {
+        responseText = [
+          'TIMESTAMP             ACTION                         TYPE          TARGET ID             RESULT',
+          '──────────────────────────────────────────────────────────────────────────────────────────────────',
+          ...state.audits.slice(0, 10).map(a => `${a.time.padEnd(21)} ${a.action.padEnd(30)} ${a.rtype.padEnd(13)} ${a.rid.padEnd(21)} ${a.result}`)
+        ].join('\n');
+      } else {
+        responseText = `Executed: ${cmd}\n✔ Command processed by InfraTrack Control Plane Engine (type 'infratrack help' for full command reference).`;
+      }
+
+      const block = document.createElement('div');
+      block.className = 'space-y-1 border-b border-slate-900 pb-3';
+      block.innerHTML = `<div class="text-emerald-400 font-semibold">$ ${cmd}</div><div class="text-slate-300 pl-2">${responseText}</div>`;
+      outWin.appendChild(block);
+      outWin.scrollTop = outWin.scrollHeight;
+    }
+
+    function evaluatePolicySimulation(action, risk, env) {
+      if (action.includes('terminate') && env === 'PRODUCTION') {
+        return {
+          decision: 'DENY',
+          matchedPolicy: 'Block Unverified Termination in Production',
+          reason: 'Direct instance or cluster termination in PRODUCTION is blocked by security guardrail policy.'
+        };
+      }
+      if ((risk === 'HIGH' || risk === 'CRITICAL') && env === 'PRODUCTION') {
+        return {
+          decision: 'REQUIRE_APPROVAL',
+          matchedPolicy: 'Require Human Approval for High-Risk Production Mutations',
+          reason: `Action "${action}" carries ${risk} risk in ${env}; human operator approval is mandatory.`
+        };
+      }
+      return {
+        decision: 'ALLOW',
+        matchedPolicy: 'Auto-Approve Low-Risk Remediations',
+        reason: `Action "${action}" (${risk}) is within automated execution bounds.`
+      };
+    }
+
+    // =========================================================================
+    // UI RENDERERS
+    // =========================================================================
+    function renderAll() {
+      const openIncs = state.incidents.filter(i => i.status !== 'RESOLVED');
+      const critIncs = openIncs.filter(i => i.severity === 'CRITICAL');
+      const activeAlerts = state.alerts.filter(a => a.status === 'ACTIVE');
+      const pendingApprovals = state.approvals.filter(a => a.status === 'PENDING');
+      const healthyTools = state.tools.filter(t => t.status === 'HEALTHY');
+
+      // Update sidebar badges & top pill
+      document.getElementById('navBadgeOpenInc').textContent = openIncs.length;
+      document.getElementById('navBadgeOpenInc').className = openIncs.length > 0
+        ? 'text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300'
+        : 'text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300';
+      document.getElementById('navBadgeAlerts').textContent = activeAlerts.length;
+      document.getElementById('navBadgeApprovals').textContent = pendingApprovals.length;
+      document.getElementById('navBadgeTools').textContent = `${healthyTools.length}/${state.tools.length}`;
+      document.getElementById('navBadgeRes').textContent = state.resources.length;
+
+      const pill = document.getElementById('systemStatusPill');
+      if (openIncs.length > 0) {
+        pill.className = 'px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/40 flex items-center gap-1.5';
+        pill.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-400 animate-ping"></span> ${openIncs.length} ACTIVE INCIDENT${openIncs.length > 1 ? 'S' : ''} DETECTED`;
+      } else {
+        pill.className = 'px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5';
+        pill.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> ALL SYSTEMS NOMINAL`;
+      }
+
+      renderDashboard(openIncs, critIncs, activeAlerts, pendingApprovals, healthyTools);
+      renderDemoView();
+      renderToolsView();
+      renderTopologyAndResources();
+      renderIncidentsView();
+      renderAutomationView();
+      renderGovernanceView();
+    }
+
+    function renderDashboard(openIncs, critIncs, activeAlerts, pendingApprovals, healthyTools) {
+      const kpis = [
+        { label: 'Open Incidents', val: openIncs.length, sub: `${critIncs.length} Critical (P1)`, color: openIncs.length ? 'text-rose-400' : 'text-emerald-400' },
+        { label: 'Active Alerts', val: activeAlerts.length, sub: 'Prometheus & SDK', color: activeAlerts.length ? 'text-amber-400' : 'text-slate-200' },
+        { label: 'Connected Tools', val: `${healthyTools.length}/${state.tools.length}`, sub: 'Circuits CLOSED', color: 'text-cyan-400' },
+        { label: 'Managed Resources', val: state.resources.length, sub: 'K8s, Docker, AWS', color: 'text-indigo-400' },
+        { label: 'Events Processed', val: state.eventsProcessed, sub: '0 Dead-Lettered', color: 'text-slate-200' },
+        { label: 'Automations Run', val: state.executions.length, sub: '100% Verified', color: 'text-emerald-400' },
+        { label: 'Pending Approvals', val: pendingApprovals.length, sub: 'Human-in-the-Loop', color: pendingApprovals.length ? 'text-amber-400' : 'text-slate-300' },
+        { label: 'Policy Compliance', val: '100%', sub: '3 Guardrails Active', color: 'text-emerald-400' }
+      ];
+      document.getElementById('dashboardKpiGrid').innerHTML = kpis.map(k => `
+        <div class="glass-card rounded-2xl p-4">
+          <div class="text-xs font-medium text-slate-400">${k.label}</div>
+          <div class="text-2xl font-extrabold mt-1 ${k.color}">${k.val}</div>
+          <div class="text-[11px] font-mono text-slate-500 mt-1">${k.sub}</div>
+        </div>
+      `).join('');
+
+      document.getElementById('liveStreamList').innerHTML = state.liveStream.map(ev => `
+        <div class="p-2.5 rounded-xl bg-slate-900/75 border border-slate-800/80 text-xs space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="font-mono text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300">${ev.type}</span>
+            <span class="font-mono text-[10px] text-slate-500">${ev.time} UTC • ${ev.source}</span>
+          </div>
+          <div class="text-slate-200 leading-snug">${ev.msg}</div>
+        </div>
+      `).join('');
+
+      document.getElementById('dashboardAppsList').innerHTML = state.applications.map(a => `
+        <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-sm text-white">${a.name}</span>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded-full ${a.status === 'HEALTHY' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}">${a.status}</span>
+            </div>
+            <div class="text-xs text-slate-400 mt-0.5">${a.description}</div>
+            <div class="text-[11px] font-mono text-cyan-400 mt-1">Endpoint: ${a.endpoint_url} • ${a.resource_count} Resources</div>
+          </div>
+        </div>
+      `).join('');
+
+      document.getElementById('dashboardPlaybooksList').innerHTML = state.playbooks.map(pb => `
+        <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3">
+          <div>
+            <div class="text-xs font-bold text-white">${pb.name}</div>
+            <div class="text-[11px] font-mono text-slate-400 mt-0.5">Risk: <span class="${pb.risk === 'HIGH' ? 'text-amber-300' : 'text-emerald-300'}">${pb.risk}</span> • Action: ${pb.action}</div>
+          </div>
+          <button data-run-pb="${pb.id}" class="dash-pb-btn shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600/25 hover:bg-indigo-600 text-indigo-200 hover:text-white border border-indigo-500/30 transition-all">
+            ▶ Execute
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function renderDemoView() {
+      const d = state.demoApp;
+      const badge = document.getElementById('demoAppStatusBadge');
+      const navBadge = document.getElementById('navBadgeDemo');
+      if (d.status === 'HEALTHY') {
+        badge.className = 'px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+        badge.textContent = `HEALTHY (${d.version})`;
+        navBadge.className = 'text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300';
+        navBadge.textContent = 'LIVE';
+      } else {
+        badge.className = 'px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30 animate-pulse';
+        badge.textContent = `CRITICAL (${d.activeChaos})`;
+        navBadge.className = 'text-[10px] font-mono px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300';
+        navBadge.textContent = 'ALERT';
+      }
+
+      const cards = [
+        { label: 'Release Version', val: d.version, color: d.version.includes('rc') ? 'text-amber-400' : 'text-cyan-300' },
+        { label: 'K8s Replicas', val: `${d.replicas} Pods`, color: 'text-indigo-300' },
+        { label: 'Worker CPU %', val: `${d.workerCpu}%`, color: d.workerCpu > 80 ? 'text-rose-400' : 'text-emerald-300' },
+        { label: 'Redis Memory', val: `${d.redisMemoryMb} MB`, color: d.redisMemoryMb > 400 ? 'text-amber-400' : 'text-emerald-300' },
+        { label: 'DB Connections', val: `${d.dbConnections}/200`, color: d.dbConnections > 150 ? 'text-rose-400' : 'text-slate-200' },
+        { label: '5xx Error Rate', val: `${d.errorRate}%`, color: d.errorRate > 5 ? 'text-rose-400' : 'text-emerald-400' }
+      ];
+      document.getElementById('demoMetricsGrid').innerHTML = cards.map(c => `
+        <div class="glass-card rounded-xl p-3.5">
+          <div class="text-[11px] text-slate-400">${c.label}</div>
+          <div class="text-lg font-bold font-mono mt-1 ${c.color}">${c.val}</div>
+        </div>
+      `).join('');
+
+      document.getElementById('demoTransactionLog').innerHTML = d.txLogs.map(line => {
+        const tone = line.includes('ERROR') || line.includes('CHAOS') ? 'text-rose-400' : (line.includes('REMEDIATED') || line.includes('SETTLED') ? 'text-emerald-300' : 'text-slate-300');
+        return `<div class="${tone}">${line}</div>`;
+      }).join('');
+    }
+
+    function renderToolsView() {
+      document.getElementById('toolsGrid').innerHTML = state.tools.map(t => `
+        <div class="glass-card rounded-2xl p-5 flex flex-col justify-between gap-4">
+          <div class="space-y-2">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <span class="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300">${t.provider}</span>
+                <h3 class="text-base font-bold text-white mt-1.5">${t.name}</h3>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-mono px-2 py-0.5 rounded ${t.status === 'HEALTHY' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-700 text-slate-300'}">${t.status}</span>
+                <span class="text-[10px] font-mono px-2 py-0.5 rounded ${t.circuit_state === 'CLOSED' ? 'bg-cyan-500/15 text-cyan-300' : 'bg-rose-500/20 text-rose-300'}">CB: ${t.circuit_state}</span>
+              </div>
+            </div>
+            <p class="text-xs text-slate-400">${t.desc}</p>
+            <div class="text-xs font-mono text-slate-300 bg-slate-900/90 px-3 py-1.5 rounded-lg border border-slate-800 truncate">Endpoint: ${t.endpoint}</div>
+          </div>
+          <div class="flex items-center gap-2 pt-2 border-t border-slate-800/80">
+            <button data-tool-validate="${t.id}" class="tool-val-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200">✓ Validate</button>
+            <button data-tool-discover="${t.id}" class="tool-disc-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-cyan-300">↻ Discover</button>
+            <button data-tool-toggle="${t.id}" class="tool-tog-btn ml-auto px-3 py-1.5 rounded-lg text-xs font-medium ${t.status === 'DISABLED' ? 'bg-emerald-600/30 text-emerald-300' : 'bg-rose-600/20 text-rose-300'}">
+              ${t.status === 'DISABLED' ? 'Enable' : 'Disable'}
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderTopologyAndResources() {
+      const gw = state.resources.find(r => r.id === 'res-nexus-gw');
+      const wk = state.resources.find(r => r.id === 'res-nexus-worker');
+      const rd = state.resources.find(r => r.id === 'res-nexus-redis');
+      const db = state.resources.find(r => r.id === 'res-nexus-db');
+      const wApi = state.resources.find(r => r.id === 'res-weather-api');
+      const wRd = state.resources.find(r => r.id === 'res-weather-redis');
+
+      const badgeFor = (r) => r.status === 'ACTIVE'
+        ? '<span class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-300">ACTIVE</span>'
+        : `<span class="px-2 py-0.5 rounded text-[10px] font-mono bg-rose-500/25 text-rose-300 animate-pulse">${r.status}</span>`;
+
+      document.getElementById('topologyVisualContainer').innerHTML = `
+        <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
+          <div class="text-[11px] font-mono uppercase text-indigo-400">Tier 1 • Ingress &amp; K8s Edge</div>
+          <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+            <div class="flex items-center justify-between"><span class="font-bold text-xs text-white">${gw.displayName}</span>${badgeFor(gw)}</div>
+            <div class="text-[11px] font-mono text-slate-400">KUBERNETES • Replicas: ${gw.replicas} • ${gw.version}</div>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+            <div class="flex items-center justify-between"><span class="font-bold text-xs text-white">${wApi.displayName}</span>${badgeFor(wApi)}</div>
+            <div class="text-[11px] font-mono text-slate-400">DOCKER • CPU: ${wApi.cpu}% • Port 4000</div>
+          </div>
+        </div>
+        <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
+          <div class="text-[11px] font-mono uppercase text-cyan-400">Tier 2 • Workers &amp; In-Memory Cache</div>
+          <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+            <div class="flex items-center justify-between"><span class="font-bold text-xs text-white">${wk.displayName}</span>${badgeFor(wk)}</div>
+            <div class="text-[11px] font-mono text-slate-400">DOCKER • CPU: ${wk.cpu}% • Mem: ${wk.memoryMb}MB</div>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+            <div class="flex items-center justify-between"><span class="font-bold text-xs text-white">${rd.displayName}</span>${badgeFor(rd)}</div>
+            <div class="text-[11px] font-mono text-slate-400">DOCKER • Mem: ${rd.memoryMb}MB / 512MB</div>
+          </div>
+        </div>
+        <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
+          <div class="text-[11px] font-mono uppercase text-emerald-400">Tier 3 • Persistent Storage &amp; State</div>
+          <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+            <div class="flex items-center justify-between"><span class="font-bold text-xs text-white">${db.displayName}</span>${badgeFor(db)}</div>
+            <div class="text-[11px] font-mono text-slate-400">AWS RDS • ${db.version} • Conns: ${state.demoApp.dbConnections}/200</div>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+            <div class="flex items-center justify-between"><span class="font-bold text-xs text-white">${wRd.displayName}</span>${badgeFor(wRd)}</div>
+            <div class="text-[11px] font-mono text-slate-400">DOCKER • Mem: ${wRd.memoryMb}MB / 256MB</div>
+          </div>
+        </div>
+      `;
+
+      const filtered = state.resources.filter(r => state.resourceFilter === 'ALL' || r.provider === state.resourceFilter);
+      document.getElementById('resourcesTableBody').innerHTML = filtered.map(r => `
+        <tr class="hover:bg-slate-900/40">
+          <td class="py-3.5 px-4">
+            <div class="font-semibold text-white">${r.displayName}</div>
+            <div class="text-xs font-mono text-slate-500">${r.id}</div>
+          </td>
+          <td class="py-3.5 px-4 font-mono text-xs uppercase text-cyan-300">${r.provider}</td>
+          <td class="py-3.5 px-4 font-mono text-xs text-slate-300">${r.type}</td>
+          <td class="py-3.5 px-4">${badgeFor(r)}</td>
+          <td class="py-3.5 px-4 font-mono text-xs text-slate-300">CPU: ${r.cpu}% | Mem: ${r.memoryMb}MB | Rep: ${r.replicas}</td>
+          <td class="py-3.5 px-4 text-right space-x-1.5">
+            <button data-res-act="restart" data-res-id="${r.id}" class="res-act-btn px-2.5 py-1 rounded bg-slate-800 hover:bg-indigo-600 text-xs text-slate-200">Restart</button>
+            <button data-res-act="scale" data-res-id="${r.id}" class="res-act-btn px-2.5 py-1 rounded bg-slate-800 hover:bg-cyan-600 text-xs text-slate-200">Scale +1</button>
+            <button data-res-inspect="${r.id}" class="res-insp-btn px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs text-cyan-300">Logs/Metrics</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderIncidentsView() {
+      const box = document.getElementById('incidentsListContainer');
+      if (state.incidents.length === 0) {
+        box.innerHTML = `
+          <div class="glass-card rounded-2xl p-10 text-center space-y-3">
+            <div class="text-3xl">✅</div>
+            <div class="text-base font-bold text-white">Zero Active Incidents</div>
+            <p class="text-xs text-slate-400 max-w-md mx-auto">All DevOps tools and connected SDK applications are operating within SLO thresholds. Click "Simulate Alert & Incident" or inject chaos from the top bar to test correlation and automated remediation.</p>
+          </div>
+        `;
+        return;
+      }
+
+      box.innerHTML = state.incidents.map(inc => `
+        <div class="glass-card rounded-2xl p-5 space-y-4 border ${inc.status === 'RESOLVED' ? 'border-emerald-500/30' : 'border-rose-500/40'}">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-mono text-xs px-2 py-0.5 rounded bg-slate-800 text-amber-300">${inc.id}</span>
+                <span class="font-mono text-xs px-2 py-0.5 rounded bg-rose-500/20 text-rose-300">${inc.priority} • ${inc.severity}</span>
+                <span class="font-mono text-xs px-2 py-0.5 rounded ${inc.status === 'RESOLVED' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'}">${inc.status}</span>
+                <span class="text-xs font-mono text-slate-400">Resource: ${inc.resourceId}</span>
+              </div>
+              <h3 class="text-base font-bold text-white mt-2">${inc.title}</h3>
+              <p class="text-xs text-slate-400 mt-0.5">${inc.description}</p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              ${inc.status !== 'RESOLVED' ? `
+                <button data-inc-rem="${inc.id}" data-inc-pb="${inc.recommendedPlaybook}" class="inc-rem-btn px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white">
+                  ✨ Run Automated Remediation
+                </button>
+                <button data-inc-resolve="${inc.id}" class="inc-res-btn px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200">
+                  Mark Resolved
+                </button>
+              ` : `<span class="text-xs font-mono text-emerald-400">✔ Verified &amp; Closed-Loop Healed</span>`}
+            </div>
+          </div>
+          <div class="p-3.5 rounded-xl bg-slate-950/90 border border-slate-800/80 space-y-1.5">
+            <div class="text-[10px] font-mono uppercase tracking-wider text-slate-500">Incident Correlation &amp; Remediation Timeline</div>
+            ${inc.timeline.map(t => `<div class="text-xs font-mono text-slate-300"><span class="text-slate-500">[${t.time}]</span> <span class="text-cyan-400">${t.type}</span> — ${t.msg}</div>`).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderAutomationView() {
+      const apprBox = document.getElementById('approvalsListContainer');
+      if (state.approvals.length === 0) {
+        apprBox.innerHTML = `<div class="text-xs text-slate-400 py-2">No pending approvals. Trigger "Emergency Production Canary Rollback" or inject Canary 500s chaos to test the approval gate.</div>`;
+      } else {
+        apprBox.innerHTML = state.approvals.map(a => `
+          <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-mono text-xs text-amber-300">${a.id}</span>
+                <span class="text-xs font-bold text-white">${a.workflowName}</span>
+                <span class="text-[10px] font-mono px-2 py-0.5 rounded ${a.status === 'PENDING' ? 'bg-amber-500/20 text-amber-300' : (a.status === 'APPROVED' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300')}">${a.status}</span>
+              </div>
+              <div class="text-xs text-slate-400 mt-1">Execution: <span class="font-mono">${a.executionId}</span> • Target: <span class="font-mono">${a.target}</span> • Risk: <span class="text-amber-300 font-mono">${a.risk}</span></div>
+            </div>
+            ${a.status === 'PENDING' ? `
+              <div class="flex items-center gap-2">
+                <button data-appr-id="${a.id}" data-appr-act="APPROVED" class="appr-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white">✓ Approve &amp; Execute</button>
+                <button data-appr-id="${a.id}" data-appr-act="REJECTED" class="appr-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-600/30 hover:bg-rose-600 text-rose-200">✕ Reject</button>
+              </div>
+            ` : ''}
+          </div>
+        `).join('');
+      }
+
+      document.getElementById('playbooksFullList').innerHTML = state.playbooks.map(pb => `
+        <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between gap-3">
+          <div>
+            <div class="text-sm font-bold text-white">${pb.name}</div>
+            <div class="text-xs text-slate-400 mt-0.5">${pb.desc}</div>
+            <div class="text-[11px] font-mono text-indigo-300 mt-1">ID: ${pb.id} • Risk: ${pb.risk} • Action: ${pb.action}</div>
+          </div>
+          <button data-run-pb="${pb.id}" class="dash-pb-btn shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white">▶ Run</button>
+        </div>
+      `).join('');
+
+      document.getElementById('executionsListContainer').innerHTML = state.executions.map(ex => `
+        <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="font-mono text-xs text-cyan-300">${ex.id}</span>
+            <span class="text-[10px] font-mono px-2 py-0.5 rounded ${ex.status === 'SUCCEEDED' ? 'bg-emerald-500/20 text-emerald-300' : (ex.status === 'WAITING_APPROVAL' ? 'bg-amber-500/20 text-amber-300' : 'bg-rose-500/20 text-rose-300')}">${ex.status}</span>
+          </div>
+          <div class="text-xs font-bold text-white">${ex.workflowName}</div>
+          <div class="text-[11px] font-mono text-slate-400">Target: ${ex.target} • Risk: ${ex.risk} • ${ex.startedAt}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderGovernanceView() {
+      const simRes = evaluatePolicySimulation(
+        document.getElementById('simActionSelect').value,
+        document.getElementById('simRiskSelect').value,
+        document.getElementById('simEnvSelect').value
+      );
+      const tone = simRes.decision === 'ALLOW' ? 'text-emerald-300' : (simRes.decision === 'REQUIRE_APPROVAL' ? 'text-amber-300' : 'text-rose-400');
+      document.getElementById('policySimResultBox').innerHTML = `
+        <div class="font-mono font-bold ${tone}">Decision: ${simRes.decision}</div>
+        <div class="text-slate-300">Matched Policy: <span class="font-semibold">${simRes.matchedPolicy}</span></div>
+        <div class="text-slate-400">${simRes.reason}</div>
+      `;
+
+      document.getElementById('policiesAndWorkersBox').innerHTML = `
+        <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+          <div><div class="text-xs font-bold text-white">Auto-Approve Low-Risk Remediations</div><div class="text-[11px] text-slate-400">Max Risk: LOW • Decision: ALLOW</div></div>
+          <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">ACTIVE</span>
+        </div>
+        <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+          <div><div class="text-xs font-bold text-white">Require Human Approval for High-Risk Production Mutations</div><div class="text-[11px] text-slate-400">Risk: HIGH/CRITICAL • Decision: REQUIRE_APPROVAL</div></div>
+          <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">ACTIVE</span>
+        </div>
+        <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+          <div><div class="text-xs font-bold text-white">Block Unverified Termination in Production</div><div class="text-[11px] text-slate-400">Action: aws_terminate_instance • Decision: DENY</div></div>
+          <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-rose-500/20 text-rose-300">ACTIVE</span>
+        </div>
+        <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-cyan-300">
+          Worker Fleet: 3/3 ONLINE (celery@automation-worker-01, celery@integration-worker-01, celery@intelligence-worker-01)
+        </div>
+      `;
+
+      document.getElementById('auditCountBadge').textContent = `${state.audits.length} immutable records`;
+      document.getElementById('auditTableBody').innerHTML = state.audits.map(a => `
+        <tr>
+          <td class="py-2 px-3 text-slate-400">${a.time}</td>
+          <td class="py-2 px-3 text-cyan-300 font-semibold">${a.action}</td>
+          <td class="py-2 px-3 text-slate-300">${a.rtype}</td>
+          <td class="py-2 px-3 text-slate-300">${a.rid}</td>
+          <td class="py-2 px-3"><span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">${a.result}</span></td>
+          <td class="py-2 px-3 text-slate-400">${a.meta}</td>
+        </tr>
+      `).join('');
+    }
+
+    // =========================================================================
+    // CHART.JS INITIALIZATION
+    // =========================================================================
+    function initTelemetryChart() {
+      const ctx = document.getElementById('telemetryChart');
+      if (!ctx || typeof Chart === 'undefined') return;
+      telemetryChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ['06:25', '06:26', '06:27', '06:28', '06:29', '06:30', 'Live'],
+          datasets: [
+            {
+              label: 'NexusPay Worker CPU %',
+              data: [17.5, 19.0, 18.4, 21.2, 18.8, 18.2, 18.2],
+              borderColor: '#38bdf8',
+              backgroundColor: 'rgba(56, 189, 248, 0.12)',
+              fill: true,
+              tension: 0.35
+            },
+            {
+              label: 'HTTP 5xx Error Rate %',
+              data: [0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0],
+              borderColor: '#f43f5e',
+              backgroundColor: 'rgba(244, 63, 94, 0.12)',
+              fill: true,
+              tension: 0.35
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: '#cbd5e1', font: { family: 'Inter', size: 11 } } }
+          },
+          scales: {
+            x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(51, 65, 85, 0.25)' } },
+            y: { min: 0, max: 100, ticks: { color: '#64748b' }, grid: { color: 'rgba(51, 65, 85, 0.25)' } }
+          }
+        }
+      });
+    }
+
+    function updateChartDataSpike(isSpike) {
+      if (!telemetryChart) return;
+      if (isSpike) {
+        telemetryChart.data.datasets[0].data = [18.2, 19.4, 22.1, 48.0, 89.5, 96.2, state.demoApp.workerCpu];
+        telemetryChart.data.datasets[1].data = [0.0, 0.0, 1.2, 18.5, 38.0, 44.2, state.demoApp.errorRate];
+      } else {
+        telemetryChart.data.datasets[0].data = [19.4, 48.0, 89.5, 42.0, 21.0, 17.8, 16.4];
+        telemetryChart.data.datasets[1].data = [0.0, 18.5, 38.0, 12.0, 1.5, 0.0, 0.0];
+      }
+      telemetryChart.update();
+    }
+
+    // =========================================================================
+    // EVENT LISTENERS & DELEGATION
+    // =========================================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      initTelemetryChart();
+      renderAll();
+      executeCliCommand('infratrack status');
+
+      // Mobile menu toggle
+      document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+        const nav = document.getElementById('sidebarNav');
+        nav.classList.toggle('hidden');
+      });
+
+      // Sidebar Navigation
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          switchView(btn.getAttribute('data-view'));
+        });
+      });
+
+      // Top bar quick actions
+      document.getElementById('topChaosWorkerBtn').addEventListener('click', () => {
+        injectChaosScenario('worker_pool_exhaustion');
+      });
+      document.getElementById('topChaosCanaryBtn').addEventListener('click', () => {
+        injectChaosScenario('canary_500_surge');
+      });
+      document.getElementById('topAutoHealBtn').addEventListener('click', () => {
+        autoHealAll();
+      });
+      document.getElementById('topOpenCliBtn').addEventListener('click', () => {
+        switchView('cli');
+      });
+
+      // Dashboard shortcuts
+      document.getElementById('dashInspectDemoBtn').addEventListener('click', () => switchView('demo'));
+      document.getElementById('dashViewAllPlaybooksBtn').addEventListener('click', () => switchView('automation'));
+      document.getElementById('dashRunE2EBtn').addEventListener('click', () => {
+        const incId = injectChaosScenario('worker_pool_exhaustion');
+        setTimeout(() => {
+          executePlaybook('pb-restart-workers', incId, true);
+          showToast('E2E Verification Passed', 'Chaos -> Alert -> Incident -> Playbook -> SDK Recovery verified end-to-end!', 'emerald');
+        }, 900);
+      });
+
+      // CLI Terminal form & chips
+      document.getElementById('cliInputForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const input = document.getElementById('cliCommandInput');
+        executeCliCommand(input.value);
+        input.value = '';
+      });
+      document.getElementById('clearTerminalBtn').addEventListener('click', () => {
+        document.getElementById('cliOutputWindow').innerHTML = '';
+      });
+      document.querySelectorAll('.cli-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const cmd = chip.getAttribute('data-cmd');
+          document.getElementById('cliCommandInput').value = cmd;
+          executeCliCommand(cmd);
+        });
+      });
+
+      // Demo App payment test button
+      document.getElementById('demoSendPaymentBtn').addEventListener('click', () => {
+        if (state.demoApp.status !== 'HEALTHY' || state.demoApp.errorRate > 10) {
+          state.demoApp.requestsTotal += 1;
+          state.demoApp.errorsTotal += 1;
+          state.demoApp.txLogs.unshift(`[${nowTimeShort()} UTC] ✖ POST /api/payments ($149.99) -> HTTP 500 INTERNAL_ERROR (active_chaos=${state.demoApp.activeChaos})`);
+          showToast('Payment Failed (HTTP 500)', `NexusPay is degraded (${state.demoApp.activeChaos}). Run SDK remediation or Auto-Heal!`, 'rose');
+        } else {
+          state.demoApp.requestsTotal += 1;
+          state.demoApp.txLogs.unshift(`[${nowTimeShort()} UTC] ✔ POST /api/payments ($149.99) -> HTTP 200 SETTLED (version=${state.demoApp.version}, latency=3.8ms)`);
+          showToast('Payment Settled (HTTP 200)', `Processed $149.99 USD via NexusPay (${state.demoApp.version})`, 'emerald');
+        }
+        renderDemoView();
+      });
+
+      // Demo chaos buttons
+      document.querySelectorAll('.demo-chaos-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          injectChaosScenario(btn.getAttribute('data-chaos'));
+        });
+      });
+
+      // Demo SDK action buttons
+      document.querySelectorAll('.demo-sdk-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const act = btn.getAttribute('data-sdk-action');
+          const pbMap = {
+            app_restart_workers: 'pb-restart-workers',
+            app_flush_cache: 'pb-flush-redis',
+            app_scale_replicas: 'pb-scale-k8s',
+            app_rollback_release: 'pb-rollback-canary'
+          };
+          executePlaybook(pbMap[act] || 'pb-restart-workers');
+        });
+      });
+
+      // Resource filter buttons
+      document.querySelectorAll('.res-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.resourceFilter = btn.getAttribute('data-res-filter');
+          document.querySelectorAll('.res-filter-btn').forEach(b => {
+            b.className = b === btn
+              ? 'res-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white'
+              : 'res-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700';
+          });
+          renderTopologyAndResources();
+        });
+      });
+
+      // Incident simulate button
+      document.getElementById('incTriggerChaosBtn').addEventListener('click', () => {
+        injectChaosScenario('redis_latency_spike');
+      });
+
+      // Policy simulator button
+      document.getElementById('runPolicySimBtn').addEventListener('click', () => {
+        renderGovernanceView();
+        showToast('Policy Evaluated', 'Simulated policy engine decision without mutating state.', 'indigo');
+      });
+
+      // Modals (Connect Tool & Create Playbook & Resource Inspector)
+      const toolModal = document.getElementById('addToolModal');
+      document.getElementById('openAddToolModalBtn').addEventListener('click', () => { toolModal.classList.remove('hidden'); toolModal.classList.add('flex'); });
+      document.getElementById('closeAddToolModalBtn').addEventListener('click', () => { toolModal.classList.add('hidden'); toolModal.classList.remove('flex'); });
+      document.getElementById('cancelAddToolBtn').addEventListener('click', () => { toolModal.classList.add('hidden'); toolModal.classList.remove('flex'); });
+      document.getElementById('confirmAddToolBtn').addEventListener('click', () => {
+        const name = document.getElementById('newToolName').value.trim() || 'ArgoCD GitOps Controller';
+        const provider = document.getElementById('newToolProvider').value;
+        const endpoint = document.getElementById('newToolUrl').value.trim() || 'http://localhost:8080';
+        const id = `int-${Math.random().toString(16).slice(2, 8)}`;
+        state.tools.push({ id, name, provider, status: 'HEALTHY', circuit_state: 'CLOSED', endpoint, desc: `Connected ${provider.toUpperCase()} integration adapter` });
+        addAuditEvent('INTEGRATION_CREATED', 'INTEGRATION', id, 'SUCCESS', `name=${name}, provider=${provider}`);
+        toolModal.classList.add('hidden');
+        toolModal.classList.remove('flex');
+        renderAll();
+        showToast('Tool Connected', `${name} (${provider.toUpperCase()}) is now HEALTHY.`, 'emerald');
+      });
+
+      const pbModal = document.getElementById('createPlaybookModal');
+      document.getElementById('openCreatePlaybookModalBtn').addEventListener('click', () => { pbModal.classList.remove('hidden'); pbModal.classList.add('flex'); });
+      document.getElementById('closeCreatePlaybookModalBtn').addEventListener('click', () => { pbModal.classList.add('hidden'); pbModal.classList.remove('flex'); });
+      document.getElementById('cancelCreatePbBtn').addEventListener('click', () => { pbModal.classList.add('hidden'); pbModal.classList.remove('flex'); });
+      document.getElementById('confirmCreatePbBtn').addEventListener('click', () => {
+        const name = document.getElementById('newPbName').value.trim() || 'Custom Self-Healing Playbook';
+        const desc = document.getElementById('newPbDesc').value.trim() || 'Automated runbook with verification';
+        const action = document.getElementById('newPbAction').value;
+        const risk = document.getElementById('newPbRisk').value;
+        const id = `pb-${Math.random().toString(16).slice(2, 8)}`;
+        state.playbooks.push({ id, name, desc, trigger: 'MANUAL', risk, action, steps: 2 });
+        addAuditEvent('PLAYBOOK_CREATED', 'PLAYBOOK', id, 'SUCCESS', `name=${name}, risk=${risk}`);
+        pbModal.classList.add('hidden');
+        pbModal.classList.remove('flex');
+        renderAll();
+        showToast('Playbook Created', `"${name}" registered in Automation Registry.`, 'emerald');
+      });
+
+      const inspModal = document.getElementById('resourceInspectorModal');
+      document.getElementById('closeResInspectorBtn').addEventListener('click', () => {
+        inspModal.classList.add('hidden');
+        inspModal.classList.remove('flex');
+      });
+
+      // Delegated clicks for dynamic lists (Playbooks, Tools, Resources, Incidents, Approvals)
+      document.body.addEventListener('click', (e) => {
+        const pbBtn = e.target.closest('.dash-pb-btn');
+        if (pbBtn) {
+          executePlaybook(pbBtn.getAttribute('data-run-pb'));
+          return;
+        }
+        const valBtn = e.target.closest('.tool-val-btn');
+        if (valBtn) {
+          const tid = valBtn.getAttribute('data-tool-validate');
+          const tool = state.tools.find(t => t.id === tid);
+          if (tool) {
+            tool.status = 'HEALTHY';
+            tool.circuit_state = 'CLOSED';
+            addAuditEvent('INTEGRATION_VALIDATED', 'INTEGRATION', tid, 'SUCCESS', `name=${tool.name}`);
+            renderAll();
+            showToast('Tool Validated', `${tool.name} health check passed (Circuit: CLOSED).`, 'emerald');
+          }
+          return;
+        }
+        const discBtn = e.target.closest('.tool-disc-btn');
+        if (discBtn) {
+          const tid = discBtn.getAttribute('data-tool-discover');
+          const tool = state.tools.find(t => t.id === tid);
+          if (tool) {
+            addStreamEvent('DISCOVERY', tool.provider, `Resource discovery completed for ${tool.name}`);
+            renderAll();
+            showToast('Discovery Complete', `Synchronized resources from ${tool.name}.`, 'indigo');
+          }
+          return;
+        }
+        const togBtn = e.target.closest('.tool-tog-btn');
+        if (togBtn) {
+          const tid = togBtn.getAttribute('data-tool-toggle');
+          const tool = state.tools.find(t => t.id === tid);
+          if (tool) {
+            tool.status = tool.status === 'DISABLED' ? 'HEALTHY' : 'DISABLED';
+            renderAll();
+            showToast('Tool Updated', `${tool.name} status is now ${tool.status}.`, 'indigo');
+          }
+          return;
+        }
+        const resActBtn = e.target.closest('.res-act-btn');
+        if (resActBtn) {
+          const rid = resActBtn.getAttribute('data-res-id');
+          const act = resActBtn.getAttribute('data-res-act');
+          const r = state.resources.find(x => x.id === rid);
+          if (r) {
+            if (act === 'restart') {
+              r.status = 'ACTIVE';
+              r.cpu = 15.6;
+            } else if (act === 'scale') {
+              r.replicas += 1;
+            }
+            addAuditEvent(`RESOURCE_${act.toUpperCase()}`, 'RESOURCE', rid, 'SUCCESS', `name=${r.name}`);
+            renderAll();
+            showToast('Resource Action Executed', `Executed ${act.toUpperCase()} on ${r.displayName}`, 'emerald');
+          }
+          return;
+        }
+        const inspBtn = e.target.closest('.res-insp-btn');
+        if (inspBtn) {
+          const rid = inspBtn.getAttribute('data-res-inspect');
+          const r = state.resources.find(x => x.id === rid);
+          if (r) {
+            document.getElementById('inspectResTitle').textContent = r.displayName;
+            document.getElementById('inspectResSub').textContent = `${r.id} • Provider: ${r.provider.toUpperCase()} • Type: ${r.type}`;
+            document.getElementById('inspectResMetrics').innerHTML = `
+              <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><div class="text-[10px] text-slate-400">CPU Usage</div><div class="text-base font-bold font-mono text-cyan-300">${r.cpu}%</div></div>
+              <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><div class="text-[10px] text-slate-400">Memory</div><div class="text-base font-bold font-mono text-indigo-300">${r.memoryMb} MB</div></div>
+              <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><div class="text-[10px] text-slate-400">Replicas</div><div class="text-base font-bold font-mono text-emerald-300">${r.replicas}</div></div>
+              <div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><div class="text-[10px] text-slate-400">State</div><div class="text-base font-bold font-mono text-white">${r.status}</div></div>
+            `;
+            document.getElementById('inspectResLogs').innerHTML = [
+              `2026-11-06T06:30:01Z INFO  [${r.name}] Connected to InfraTrack Control Plane SDK v2.0`,
+              `2026-11-06T06:30:05Z INFO  [${r.name}] Health check probe HTTP 200 OK (latency=3.9ms)`,
+              `2026-11-06T06:30:10Z INFO  [${r.name}] Prometheus metrics scraped (/metrics) cpu=${r.cpu}% mem=${r.memoryMb}MB`,
+              r.status !== 'ACTIVE' ? `2026-11-06T06:31:00Z ERROR [${r.name}] Upstream anomaly detected — state=${r.status}` : `2026-11-06T06:31:00Z INFO  [${r.name}] Operating within nominal SLO bounds`
+            ].map(l => `<div>${l}</div>`).join('');
+            inspModal.classList.remove('hidden');
+            inspModal.classList.add('flex');
+          }
+          return;
+        }
+        const incRemBtn = e.target.closest('.inc-rem-btn');
+        if (incRemBtn) {
+          executePlaybook(incRemBtn.getAttribute('data-inc-pb'), incRemBtn.getAttribute('data-inc-rem'), false);
+          return;
+        }
+        const incResBtn = e.target.closest('.inc-res-btn');
+        if (incResBtn) {
+          const inc = state.incidents.find(i => i.id === incResBtn.getAttribute('data-inc-resolve'));
+          if (inc) {
+            inc.status = 'RESOLVED';
+            renderAll();
+            showToast('Incident Resolved', `Incident ${inc.id} marked RESOLVED.`, 'emerald');
+          }
+          return;
+        }
+        const apprBtn = e.target.closest('.appr-btn');
+        if (apprBtn) {
+          decideApproval(apprBtn.getAttribute('data-appr-id'), apprBtn.getAttribute('data-appr-act'));
+        }
+      });
+    });
+  </script>
+</body>
+</html>

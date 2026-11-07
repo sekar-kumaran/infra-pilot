@@ -23,7 +23,7 @@ class Playbook(Base):
     name = Column(String(255), nullable=False, unique=True, index=True)
     description = Column(Text, nullable=True)
     version = Column(Integer, nullable=False, default=1)
-    status = Column(String(50), nullable=False, default=PlaybookStatus.DRAFT.value)
+    status = Column(String(50), nullable=False, default=PlaybookStatus.ACTIVE.value)
     trigger_type = Column(String(50), nullable=False, default=PlaybookTriggerType.MANUAL.value)
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -101,6 +101,7 @@ class AutomationStepExecution(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     execution = relationship("AutomationExecution", back_populates="step_executions")
+    playbook_step = relationship("PlaybookStep")
     verification_result = relationship("VerificationResult", back_populates="step_execution", uselist=False, cascade="all, delete-orphan")
 
 

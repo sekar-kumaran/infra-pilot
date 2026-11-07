@@ -21,6 +21,7 @@ api_router.include_router(policies.router, prefix="/policies", tags=["Policies"]
 api_router.include_router(operations.router, prefix="/operations", tags=["Operations"])
 api_router.include_router(applications.router, prefix="/applications", tags=["Applications"])
 api_router.include_router(observability.router, prefix="/observability", tags=["Observability"])
-from app.api.v1.endpoints import infrastructure, governance
+from app.api.v1.endpoints import infrastructure, governance, settings
 api_router.include_router(infrastructure.router, prefix="/infrastructure", tags=["Infrastructure"])
 api_router.include_router(governance.router, prefix="/governance", tags=["Governance"])
+api_router.include_router(settings.router, prefix="/settings", tags=["Settings"])

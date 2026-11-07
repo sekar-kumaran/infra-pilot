@@ -15,6 +15,7 @@ from .errors import (
 class KubernetesClient:
     def __init__(self, base_url: str, token: Optional[str] = None, verify_tls: bool = True, ca_cert: Optional[str] = None):
         self.base_url = base_url.rstrip("/")
+        self.token = token
         self.verify_tls = verify_tls
         
         self.session = requests.Session()
@@ -38,7 +39,7 @@ class KubernetesClient:
                 pass
 
     def _handle_response(self, response: requests.Response) -> Dict[str, Any]:
-        if response.ok:
+        if 200 <= response.status_code < 300:
             return response.json()
             
         status = response.status_code
@@ -62,16 +63,21 @@ class KubernetesClient:
         url = f"{self.base_url}{path}"
         try:
             req_headers = {}
+            if self.token:
+                req_headers["Authorization"] = f"Bearer {self.token}"
             if headers:
                 req_headers.update(headers)
                 
-            response = self.session.request(
-                method, 
-                url, 
-                json=json, 
-                headers=req_headers,
-                timeout=(5, 30) # 5s connect, 30s read
-            )
+            http_method = getattr(requests, method.lower(), requests.get)
+            kwargs = {
+                "headers": req_headers,
+                "timeout": (5, 30),
+                "verify": self.session.verify
+            }
+            if json is not None:
+                kwargs["json"] = json
+
+            response = http_method(url, **kwargs)
             return self._handle_response(response)
         except requests.exceptions.Timeout:
             raise KubernetesTimeoutError(f"Connection timeout to {self.base_url}")

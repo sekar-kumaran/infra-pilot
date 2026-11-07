@@ -51,13 +51,15 @@ export default function DeadLetterPage() {
 
   const handleRetry = async (id: string) => {
     try {
-      await fetch(`/api/v1/workflows/executions/${id}/resume`, { method: 'POST' });
+      await automationApi.resumeExecution(id);
       toast.success('Retry initiated');
       mutate();
     } catch (err: any) {
       toast.error(`Retry failed: ${err.message}`);
     }
   };
+
+
 
   return (
     <div className="space-y-6">

@@ -21,6 +21,7 @@ from app.integrations.providers.ansible.adapter import AnsibleAdapter
 from app.integrations.providers.docker.adapter import DockerIntegrationAdapter
 from app.integrations.providers.aws.adapter import AWSAdapter
 from app.integrations.providers.grafana.adapter import GrafanaAdapter
+from app.integrations.providers.terraform.adapter import TerraformIntegrationAdapter
 
 AdapterRegistry.register(TestProviderAdapter)
 AdapterRegistry.register(PrometheusAdapter)
@@ -30,6 +31,7 @@ AdapterRegistry.register(AnsibleAdapter)
 AdapterRegistry.register(DockerIntegrationAdapter)
 AdapterRegistry.register(AWSAdapter)
 AdapterRegistry.register(GrafanaAdapter)
+AdapterRegistry.register(TerraformIntegrationAdapter)
 
 __all__ = [
     "IntegrationCapability",

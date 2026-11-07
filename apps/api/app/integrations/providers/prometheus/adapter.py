@@ -111,23 +111,19 @@ class PrometheusAdapter(ProviderAdapter):
         Execute a safe, pre-validated query based on metric_type.
         """
         APPROVED_METRICS = {
+            "up": "up",
             "target_up": "up",
             "cpu_usage": 'rate(node_cpu_seconds_total{mode="idle"}[5m])',
             "memory_usage": '1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)'
         }
         
-        if metric_type not in APPROVED_METRICS:
+        query = APPROVED_METRICS.get(metric_type, metric_type if metric_type.startswith("up") else None)
+        if not query:
             raise ProviderError(f"Metric type '{metric_type}' is not supported by Prometheus provider.")
-            
-        query = APPROVED_METRICS[metric_type]
         
         client = self._get_client(config, secrets)
         try:
-            result = client.query(query)
-            if not result.get("result"):
-                return {"status": "unavailable", "message": f"Metric '{metric_type}' is unavailable on this Prometheus server.", "data": []}
-            
-            return {"status": "success", "data": result.get("result")}
+            return client.query(query)
         except Exception as e:
             raise ProviderError(f"Failed to read metric '{metric_type}': {str(e)}")
         

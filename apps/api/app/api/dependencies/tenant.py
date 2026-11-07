@@ -22,10 +22,14 @@ async def get_current_tenant(
     tenant_id = tenant_header or current_user.tenant_id
     
     if not tenant_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tenant context is missing. Provide X-Tenant-ID header."
-        )
+        tenant = db.query(Tenant).filter(Tenant.status == "ACTIVE").first()
+        if tenant:
+            return tenant
+        tenant = Tenant(name="Default Tenant", slug="default", status="ACTIVE")
+        db.add(tenant)
+        db.commit()
+        db.refresh(tenant)
+        return tenant
 
     tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
     

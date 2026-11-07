@@ -31,10 +31,11 @@ def list_alerts(
     List alerts with filtering.
     """
     repo = EventRepository(db)
-    return repo.get_alerts(
+    alerts = repo.get_alerts(
         skip=skip, 
         limit=limit, 
         status=status, 
+        severity=severity,
         resource_id=resource_id
     )
     

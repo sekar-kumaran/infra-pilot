@@ -217,7 +217,7 @@ def execute_automation_task(self, execution_id: str):
                 # Inject resource if needed
                 params = step.parameters.copy() if step.parameters else {}
                 if execution.resource_id:
-                    from app.models.resources import InfrastructureResource
+                    from app.models.resource import InfrastructureResource
                     resource = db.query(InfrastructureResource).filter(InfrastructureResource.id == execution.resource_id).first()
                     if resource:
                         params["resource"] = resource
@@ -364,7 +364,7 @@ def verify_automation_task(self, execution_id: str, verification_id: str):
                 # Inject resource if needed
                 params = step.parameters.copy() if step.parameters else {}
                 if execution.resource_id:
-                    from app.models.resources import InfrastructureResource
+                    from app.models.resource import InfrastructureResource
                     resource = db.query(InfrastructureResource).filter(InfrastructureResource.id == execution.resource_id).first()
                     if resource:
                         params["resource"] = resource

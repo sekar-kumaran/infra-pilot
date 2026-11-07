@@ -51,8 +51,7 @@ def extract_secrets(config: Dict[str, Any]) -> tuple[Dict[str, Any], Dict[str, A
     for k, v in config.items():
         if isinstance(v, dict):
             child_safe, child_secrets = extract_secrets(v)
-            if child_safe:
-                safe_config[k] = child_safe
+            safe_config[k] = child_safe
             if child_secrets:
                 extracted_secrets[k] = child_secrets
         elif is_secret_key(k):

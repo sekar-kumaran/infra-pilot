@@ -18,7 +18,9 @@ import {
   Menu,
   X,
   Zap,
-  Box
+  Box,
+  Layers,
+  Cpu
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -70,15 +72,27 @@ const navSections: NavSection[] = [
     title: 'Automation',
     items: [
       { name: 'Workflows', href: '/automation/workflows', icon: PlaySquare, permission: 'automation:read' },
+      { name: 'Actions Registry', href: '/automation/actions', icon: Zap, permission: 'automation:read' },
+      { name: 'Providers', href: '/automation/providers', icon: Plug, permission: 'automation:read' },
       { name: 'Run History', href: '/automation/executions', icon: Activity, permission: 'automation:read' },
       { name: 'Approvals', href: '/automation/approvals', icon: ShieldCheck, permission: 'automation:read' },
       { name: 'Scheduler', href: '/automation/scheduler', icon: Zap, permission: 'automation:read' },
     ]
   },
   {
+    title: 'Operations',
+    items: [
+      { name: 'Worker Fleet', href: '/operations/workers', icon: Cpu, permission: 'operations:read' },
+      { name: 'Queue Health', href: '/operations/queues', icon: Layers, permission: 'operations:read' },
+      { name: 'Dead Letter Queue', href: '/operations/dead-letter', icon: AlertTriangle, permission: 'operations:read' },
+      { name: 'Circuit Breakers', href: '/operations/circuit-breakers', icon: Zap, permission: 'operations:read' },
+    ]
+  },
+  {
     title: 'Governance',
     items: [
       { name: 'Policies', href: '/policies', icon: ShieldCheck, permission: 'policies:read' },
+      { name: 'Policy Simulator', href: '/policies/simulator', icon: Zap, permission: 'policies:read' },
       { name: 'Compliance Checks', href: '/governance/compliance', icon: ShieldCheck, permission: 'policies:read' },
       { name: 'Audit Trail', href: '/audit', icon: FileText, permission: 'security:read' },
     ]

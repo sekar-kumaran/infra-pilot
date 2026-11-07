@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any, List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -8,7 +8,8 @@ from app.schemas.workflow import (
     OperationWorkflowCreate,
     OperationWorkflowUpdate,
     OperationWorkflowResponse,
-    WorkflowExecutionResponse
+    WorkflowExecutionResponse,
+    WorkflowTimelineEventResponse
 )
 from app.models.workflow import OperationWorkflow, WorkflowStep, WorkflowExecution
 from app.models.user import User
@@ -16,6 +17,16 @@ from app.services.workflow_engine import WorkflowEngine
 from app.workers.tasks import execute_workflow_task
 
 router = APIRouter()
+
+def _safe_dispatch_workflow(execution_id: str):
+    try:
+        execute_workflow_task.delay(execution_id)
+    except Exception:
+        # Fallback to synchronous execution when Celery broker is unreachable
+        try:
+            execute_workflow_task(execution_id)
+        except Exception:
+            pass
 
 @router.post("/", response_model=OperationWorkflowResponse)
 def create_workflow(
@@ -63,6 +74,75 @@ def get_workflows(
 ) -> Any:
     return db.query(OperationWorkflow).all()
 
+@router.get("/executions", response_model=List[WorkflowExecutionResponse])
+def get_all_executions(
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.require_permission("workflows:read")),
+) -> Any:
+    return db.query(WorkflowExecution).order_by(WorkflowExecution.created_at.desc()).all()
+
+@router.get("/executions/{execution_id}/timeline", response_model=List[WorkflowTimelineEventResponse])
+def get_execution_timeline(
+    execution_id: UUID,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.require_permission("workflows:read")),
+) -> Any:
+    execution = db.query(WorkflowExecution).filter(WorkflowExecution.id == execution_id).first()
+    if not execution:
+        raise HTTPException(status_code=404, detail="Workflow execution not found")
+        
+    events = []
+    events.append({
+        "timestamp": execution.created_at,
+        "event_type": "EXECUTION_CREATED",
+        "message": f"Workflow execution {execution.id} created",
+        "metadata": {"status": "PENDING"}
+    })
+    
+    if execution.started_at:
+        events.append({
+            "timestamp": execution.started_at,
+            "event_type": "EXECUTION_STARTED",
+            "message": "Workflow execution started running",
+            "metadata": {}
+        })
+        
+    for step_exec in execution.step_executions:
+        events.append({
+            "timestamp": step_exec.created_at,
+            "event_type": "STEP_STARTED",
+            "message": f"Step {step_exec.step.sequence if step_exec.step else 'Unknown'} ({step_exec.action}) started",
+            "metadata": {"action": step_exec.action, "provider": step_exec.provider}
+        })
+        
+        if step_exec.completed_at:
+            events.append({
+                "timestamp": step_exec.completed_at,
+                "event_type": "STEP_COMPLETED",
+                "message": f"Step ({step_exec.action}) completed with status {step_exec.status}",
+                "metadata": {"status": step_exec.status, "error": step_exec.error, "verification_status": step_exec.verification_status}
+            })
+            
+    if execution.completed_at:
+        events.append({
+            "timestamp": execution.completed_at,
+            "event_type": "EXECUTION_COMPLETED",
+            "message": f"Workflow execution completed with status {execution.status}",
+            "metadata": {"status": execution.status, "failure_reason": execution.failure_reason}
+        })
+        
+    events.sort(key=lambda x: x["timestamp"])
+    return events
+
+@router.post("/executions/{execution_id}/resume")
+def resume_workflow_execution(
+    execution_id: UUID,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.require_permission("workflows:execute")),
+) -> Any:
+    engine = WorkflowEngine(db)
+    return engine.resume_workflow_execution(execution_id, current_user.id)
+
 @router.get("/{id}", response_model=OperationWorkflowResponse)
 def get_workflow(
     id: UUID,
@@ -90,8 +170,8 @@ def validate_workflow(
 @router.post("/{id}/execute", response_model=WorkflowExecutionResponse)
 def execute_workflow(
     id: UUID,
-    incident_id: UUID = None,
-    resource_id: UUID = None,
+    incident_id: Optional[UUID] = None,
+    resource_id: Optional[UUID] = None,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.require_permission("workflows:execute")),
 ) -> Any:
@@ -109,17 +189,9 @@ def execute_workflow(
     db.commit()
     db.refresh(execution)
     
-    # Queue celery task
-    execute_workflow_task.delay(str(execution.id))
-    
+    _safe_dispatch_workflow(str(execution.id))
+    db.refresh(execution)
     return execution
-
-@router.get("/executions", response_model=List[WorkflowExecutionResponse])
-def get_all_executions(
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.require_permission("workflows:read")),
-) -> Any:
-    return db.query(WorkflowExecution).order_by(WorkflowExecution.created_at.desc()).all()
 
 @router.get("/{id}/executions", response_model=List[WorkflowExecutionResponse])
 def get_workflow_executions(
@@ -128,72 +200,3 @@ def get_workflow_executions(
     current_user: User = Depends(deps.require_permission("workflows:read")),
 ) -> Any:
     return db.query(WorkflowExecution).filter(WorkflowExecution.workflow_id == id).all()
-
-from app.schemas.workflow import WorkflowTimelineEventResponse
-
-@router.get("/executions/{execution_id}/timeline", response_model=List[WorkflowTimelineEventResponse])
-def get_execution_timeline(
-    execution_id: UUID,
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.require_permission("workflows:read")),
-) -> Any:
-    execution = db.query(WorkflowExecution).filter(WorkflowExecution.id == execution_id).first()
-    if not execution:
-        raise HTTPException(status_code=404, detail="Workflow execution not found")
-        
-    events = []
-    
-    # 1. Execution Started
-    events.append({
-        "timestamp": execution.created_at,
-        "event_type": "EXECUTION_CREATED",
-        "message": f"Workflow execution {execution.id} created",
-        "metadata": {"status": "PENDING"}
-    })
-    
-    if execution.started_at:
-        events.append({
-            "timestamp": execution.started_at,
-            "event_type": "EXECUTION_STARTED",
-            "message": "Workflow execution started running",
-            "metadata": {}
-        })
-        
-    # 2. Steps
-    for step_exec in execution.step_executions:
-        events.append({
-            "timestamp": step_exec.created_at,
-            "event_type": "STEP_STARTED",
-            "message": f"Step {step_exec.step.sequence if step_exec.step else 'Unknown'} ({step_exec.action}) started",
-            "metadata": {"action": step_exec.action, "provider": step_exec.provider}
-        })
-        
-        if step_exec.completed_at:
-            events.append({
-                "timestamp": step_exec.completed_at,
-                "event_type": "STEP_COMPLETED",
-                "message": f"Step ({step_exec.action}) completed with status {step_exec.status}",
-                "metadata": {"status": step_exec.status, "error": step_exec.error, "verification_status": step_exec.verification_status}
-            })
-            
-    # 3. Execution Completed
-    if execution.completed_at:
-        events.append({
-            "timestamp": execution.completed_at,
-            "event_type": "EXECUTION_COMPLETED",
-            "message": f"Workflow execution completed with status {execution.status}",
-            "metadata": {"status": execution.status, "failure_reason": execution.failure_reason}
-        })
-        
-    events.sort(key=lambda x: x["timestamp"])
-    return events
-
-@router.post("/executions/{execution_id}/resume")
-def resume_workflow_execution(
-    execution_id: UUID,
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.require_permission("workflows:execute")),
-) -> Any:
-    # We will use WorkflowEngine to attempt resume
-    engine = WorkflowEngine(db)
-    return engine.resume_workflow_execution(execution_id, current_user.id)

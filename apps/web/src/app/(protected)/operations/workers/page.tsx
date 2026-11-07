@@ -8,13 +8,14 @@ import { Activity, Server, Zap, RefreshCw, StopCircle, PlayCircle } from 'lucide
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function WorkersPage() {
-    const { data: workers = [], error, isLoading, mutate } = useSWR('/operations/workers', operationsApi.getWorkers, { refreshInterval: 30000 });
+    const { data: rawWorkers, error, isLoading, mutate } = useSWR('/operations/workers', operationsApi.getWorkers, { refreshInterval: 30000 });
+    const workers = Array.isArray(rawWorkers) ? rawWorkers : [];
 
     const total = workers.length;
     const online = workers.filter(w => w.status === 'ONLINE').length;
     const degraded = workers.filter(w => w.status === 'DEGRADED').length;
     const offline = workers.filter(w => w.status === 'OFFLINE').length;
-    const activeTasks = workers.reduce((acc, w) => acc + w.active_tasks, 0);
+    const activeTasks = workers.reduce((acc, w) => acc + (w.active_tasks || 0), 0);
 
     return (
         <div className="space-y-6">

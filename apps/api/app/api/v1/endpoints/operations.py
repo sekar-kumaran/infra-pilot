@@ -83,9 +83,13 @@ def list_queues(
     # For now, we will return a structured response with empty/simulated data 
     # if inspect is not available or blocked.
     
-    inspect = celery_app.control.inspect()
-    active_tasks = inspect.active() or {}
-    reserved_tasks = inspect.reserved() or {}
+    try:
+        inspect = celery_app.control.inspect()
+        active_tasks = inspect.active() or {}
+        reserved_tasks = inspect.reserved() or {}
+    except Exception:
+        active_tasks = {}
+        reserved_tasks = {}
     
     queues_map = {}
     
