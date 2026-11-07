@@ -2,6 +2,12 @@
   "name": "web",
   "version": "0.1.0",
   "private": true,
+  "author": {
+    "name": "Sekar Kumaran",
+    "url": "https://github.com/sekar-kumaran"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/sekar-kumaran/infra-pilot",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

@@ -2,6 +2,14 @@
 
 **InfraPilot** is an independent infrastructure operations control plane designed to unify infrastructure inventory, observability, alert ingestion, incident management, and automated remediation.
 
+## Open Source
+
+InfraPilot is open-source software maintained by **Sekar Kumaran**.
+
+- Developer: [Sekar Kumaran](https://github.com/sekar-kumaran)
+- Copyright: Copyright (c) 2026 Sekar Kumaran
+- License: [MIT License](./LICENSE)
+
 ## 🎯 Goal of the Application
 The primary goal of InfraPilot is to serve as a **centralized orchestrator** for modern infrastructure. 
 It is **NOT** a replacement for underlying DevOps execution and monitoring tools. Instead, it sits as a unified orchestration layer above them, providing:

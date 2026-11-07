@@ -1,5 +1,12 @@
 FROM python:3.12-slim
 
+LABEL org.opencontainers.image.title="InfraPilot API" \
+      org.opencontainers.image.description="InfraPilot infrastructure operations control plane API" \
+      org.opencontainers.image.authors="Sekar Kumaran <https://github.com/sekar-kumaran>" \
+      org.opencontainers.image.url="https://github.com/sekar-kumaran/infra-pilot" \
+      org.opencontainers.image.source="https://github.com/sekar-kumaran/infra-pilot" \
+      org.opencontainers.image.licenses="MIT"
+
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     APP_HOME=/app

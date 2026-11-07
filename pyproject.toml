@@ -7,6 +7,17 @@ name = "infrapilot"
 version = "2.2.0"
 description = "InfraPilot — Enterprise DevOps & SRE Control Plane Package, Python SDK, FastAPI Server & CLI"
 readme = "README.md"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Sekar Kumaran", email = "sekarkumaran461@users.noreply.github.com" },
+]
+maintainers = [
+    { name = "Sekar Kumaran", email = "sekarkumaran461@users.noreply.github.com" },
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+]
 requires-python = ">=3.10"
 dependencies = [
     "click>=8.1.0",
@@ -18,3 +29,9 @@ dependencies = [
 
 [project.scripts]
 infrapilot = "infrapilot.cli:cli"
+
+[project.urls]
+Homepage = "https://github.com/sekar-kumaran/infra-pilot"
+Repository = "https://github.com/sekar-kumaran/infra-pilot"
+Issues = "https://github.com/sekar-kumaran/infra-pilot/issues"
+License = "https://github.com/sekar-kumaran/infra-pilot/blob/main/LICENSE"

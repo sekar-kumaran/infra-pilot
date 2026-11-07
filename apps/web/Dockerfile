@@ -1,5 +1,12 @@
 FROM node:20-alpine AS base
 
+LABEL org.opencontainers.image.title="InfraPilot Web" \
+      org.opencontainers.image.description="InfraPilot infrastructure operations control plane web interface" \
+      org.opencontainers.image.authors="Sekar Kumaran <https://github.com/sekar-kumaran>" \
+      org.opencontainers.image.url="https://github.com/sekar-kumaran/infra-pilot" \
+      org.opencontainers.image.source="https://github.com/sekar-kumaran/infra-pilot" \
+      org.opencontainers.image.licenses="MIT"
+
 # Install dependencies only when needed
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
