@@ -1,151 +1,35 @@
-services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: infrapilot_postgres
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgrespassword
-      POSTGRES_DB: infrapilot
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./postgres-initdb:/docker-entrypoint-initdb.d
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d infrapilot"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
+version: "3.9"
 
-  api:
-    build:
-      context: ./apps/api
-      dockerfile: Dockerfile
-    image: infrapilot-api:latest
-    container_name: infrapilot_api
-    command: ["sh", "/app/entrypoint.sh"]
+services:
+  infrapilot_docker_proxy:
+    image: alpine/socat:latest
+    container_name: infrapilot_docker_proxy
+    command: TCP-LISTEN:2375,fork,reuseaddr UNIX-CONNECT:/var/run/docker.sock
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "2375:2375"
+    restart: always
+
+  infrapilot-api:
+    build: .
+    container_name: infrapilot-api
+    environment:
+      - INFRAPILOT_DB_PATH=/tmp/infrapilot_state.db
+      - DOCKER_HOST=http://infrapilot_docker_proxy:2375
     ports:
       - "8000:8000"
-    environment:
-      - APP_ENV=development
-      - DEBUG=True
-      - LOG_LEVEL=DEBUG
-      - CORS_ALLOWED_ORIGINS=*
-      - DATABASE_URL=postgresql+psycopg2://postgres:postgrespassword@postgres:5432/infrapilot
-      - AUTH_SECRET_KEY=super-secret-key-for-local-dev-only-change-in-prod
-      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
-      - CELERY_RESULT_BACKEND=rpc://
-      - REDIS_URL=redis://redis:6379/0
-      - INTEGRATION_ENCRYPTION_KEY=WN615IJG5YQv4_X-845VnvfLA6k8Vw-q7yZX-EaFE_o=
     depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 45s
-    volumes:
-      - ./ansible:/app/ansible
-      - ./apps/api/entrypoint.sh:/app/entrypoint.sh
-      - /var/run/docker.sock:/var/run/docker.sock
-    restart: unless-stopped
+      - infrapilot_docker_proxy
+    restart: always
 
-  rabbitmq:
-    image: rabbitmq:3.13-management-alpine
-    container_name: infrapilot_rabbitmq
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
-  celery-worker:
-    build:
-      context: ./apps/api
-      dockerfile: Dockerfile
-    image: infrapilot-api:latest
-    container_name: infrapilot_celery_worker
-    command: ["celery", "-A", "app.workers.celery_app", "worker", "--loglevel=info"]
-    environment:
-      - APP_ENV=development
-      - DEBUG=True
-      - DATABASE_URL=postgresql+psycopg2://postgres:postgrespassword@postgres:5432/infrapilot
-      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
-      - CELERY_RESULT_BACKEND=rpc://
-      - REDIS_URL=redis://redis:6379/0
-      - INTEGRATION_ENCRYPTION_KEY=WN615IJG5YQv4_X-845VnvfLA6k8Vw-q7yZX-EaFE_o=
-    depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    volumes:
-      - ./ansible:/app/ansible
-      - /var/run/docker.sock:/var/run/docker.sock
-    restart: unless-stopped
-
-  web:
-    build:
-      context: ./apps/web
-      dockerfile: Dockerfile
-    image: infrapilot-web:latest
-    container_name: infrapilot_web
-    ports:
-      - "3000:3000"
+  infrapilot-web:
+    image: sekarkumaran461/infrapilot-web:latest
+    container_name: infrapilot-web
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
-    depends_on:
-      - api
-    restart: unless-stopped
-
-  celery-beat:
-    build:
-      context: ./apps/api
-      dockerfile: Dockerfile
-    image: infrapilot-api:latest
-    container_name: infrapilot_celery_beat
-    command: ["celery", "-A", "app.workers.celery_app", "beat", "--loglevel=info"]
-    environment:
-      - APP_ENV=development
-      - DEBUG=True
-      - DATABASE_URL=postgresql+psycopg2://postgres:postgrespassword@postgres:5432/infrapilot
-      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
-      - CELERY_RESULT_BACKEND=rpc://
-      - REDIS_URL=redis://redis:6379/0
-      - INTEGRATION_ENCRYPTION_KEY=WN615IJG5YQv4_X-845VnvfLA6k8Vw-q7yZX-EaFE_o=
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-    volumes:
-      - ./ansible:/app/ansible
-    restart: unless-stopped
-
-  redis:
-    image: redis:alpine
-    container_name: infrapilot_redis
     ports:
-      - "6379:6379"
-    restart: unless-stopped
-
-  docker-proxy:
-    image: alpine/socat
-    container_name: infrapilot_docker_proxy
-    command: TCP-LISTEN:2375,fork UNIX-CONNECT:/var/run/docker.sock
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    restart: unless-stopped
-
-volumes:
-  postgres_data:
+      - "8090:3000"
+    depends_on:
+      - infrapilot-api
+    restart: always

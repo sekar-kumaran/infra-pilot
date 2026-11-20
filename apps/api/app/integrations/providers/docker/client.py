@@ -1,150 +1,83 @@
-import requests
+"""
+InfraPilot Dual-Transport Docker Engine Client.
+Supports BOTH:
+1. TCP Docker Proxy (`http://infrapilot_docker_proxy:2375` via alpine/socat)
+2. Native Unix Domain Socket (`unix:///var/run/docker.sock` or `/var/run/docker.sock`)
+   using Python's built-in `socket.AF_UNIX` + `http.client.HTTPConnection` so
+   `requests` never fails with `InvalidSchema: No connection adapters were found for unix://...`!
+"""
 import json
-import logging
-from typing import Dict, Any, List, Optional
-from requests.exceptions import Timeout, ConnectionError, RequestException
+import socket
+import http.client
+import urllib.request
+from typing import Any, Dict, List, Optional
 
-from app.integrations.providers.docker.errors import (
-    DockerConnectionError,
-    DockerAuthenticationError,
-    DockerNotFoundError,
-    DockerAPIError,
-    DockerTimeoutError
-)
-from app.integrations.providers.docker.schemas import DockerIntegrationConfig, DockerIntegrationSecrets
 
-logger = logging.getLogger(__name__)
+class UnixSocketHTTPConnection(http.client.HTTPConnection):
+    """HTTPConnection over a local Unix domain socket (/var/run/docker.sock)."""
 
-class DockerClient:
-    """REST Client for Docker Engine API."""
-    def __init__(self, config: DockerIntegrationConfig, secrets: Optional[DockerIntegrationSecrets] = None):
-        self.base_url = config.base_url.rstrip('/')
-        self.timeout = config.timeout_seconds
-        
-        self.session = requests.Session()
-        self.session.verify = config.verify_tls
-        
-        if secrets:
-            if secrets.tls_cert and secrets.tls_key:
-                # We would typically write these to a tempfile if using requests, 
-                # or pass if already paths. For now, assume we just use the token if any.
-                pass
-            if secrets.client_token:
-                self.session.headers.update({"Authorization": f"Bearer {secrets.client_token}"})
-                
-    def _handle_response(self, response: requests.Response, is_text: bool = False) -> Any:
-        if response.status_code == 401 or response.status_code == 403:
-            raise DockerAuthenticationError(f"Authentication/Authorization failed: {response.text}")
-        elif response.status_code == 404:
-            raise DockerNotFoundError(f"Resource not found: {response.text}")
-        elif not (200 <= response.status_code < 300):
-            raise DockerAPIError(f"Docker API error {response.status_code}: {response.text}")
+    def __init__(self, unix_socket_path: str, timeout: int = 5):
+        super().__init__("localhost", timeout=timeout)
+        self.unix_socket_path = unix_socket_path
 
-        if is_text:
-            return response.text
+    def connect(self):
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.settimeout(self.timeout)
+        sock.connect(self.unix_socket_path)
+        self.sock = sock
 
-        content_type = response.headers.get("Content-Type", "")
-        if "application/json" in content_type or response.text.strip().startswith(("{", "[")):
+
+class DockerEngineClient:
+    def __init__(self, base_url: str = "http://infrapilot_docker_proxy:2375", timeout: int = 5):
+        self.base_url = (base_url or "http://infrapilot_docker_proxy:2375").strip()
+        self.timeout = timeout
+
+    def _is_unix_socket(self) -> bool:
+        return self.base_url.startswith("unix://") or self.base_url.startswith("/")
+
+    def _socket_path(self) -> str:
+        if self.base_url.startswith("unix:///"):
+            return "/" + self.base_url[len("unix:///"):]
+        if self.base_url.startswith("unix://"):
+            return self.base_url[len("unix://"):]
+        return self.base_url
+
+    def _request(self, method: str, path: str) -> Any:
+        if self._is_unix_socket():
+            sock_path = self._socket_path()
+            if os.path.exists(sock_path):
+                conn = UnixSocketHTTPConnection(sock_path, timeout=self.timeout)
+                conn.request(method, path, headers={"Host": "localhost"})
+                resp = conn.getresponse()
+                raw = resp.read().decode("utf-8", errors="replace")
+                conn.close()
+                try:
+                    return json.loads(raw)
+                except Exception:
+                    return raw
+            # Automatic fallback to socat TCP proxy if socket isn't mounted directly
+            tcp_url = f"http://infrapilot_docker_proxy:2375{path}"
+        else:
+            tcp_url = f"{self.base_url.rstrip('/')}{path}"
+
+        req = urllib.request.Request(tcp_url, method=method)
+        with urllib.request.urlopen(req, timeout=self.timeout) as r:
+            body = r.read().decode("utf-8", errors="replace")
             try:
-                return response.json()
+                return json.loads(body)
             except Exception:
-                pass
-        return response.text
+                return body
 
-    def _get(self, path: str, params: Optional[Dict] = None, is_text: bool = False) -> Any:
-        url = f"{self.base_url}{path}"
+    def ping(self) -> bool:
         try:
-            res = self.session.get(url, params=params, timeout=self.timeout)
-            return self._handle_response(res, is_text=is_text)
-        except Timeout:
-            raise DockerTimeoutError(f"Request to {url} timed out")
-        except ConnectionError as e:
-            raise DockerConnectionError(f"Failed to connect to Docker API: {str(e)}")
-        except (DockerAuthenticationError, DockerNotFoundError, DockerAPIError, DockerTimeoutError, DockerConnectionError):
-            raise
-        except RequestException as e:
-            raise DockerAPIError(f"Request failed: {str(e)}")
-
-    def _post(self, path: str, json_data: Optional[Dict] = None, params: Optional[Dict] = None) -> Any:
-        url = f"{self.base_url}{path}"
-        try:
-            res = self.session.post(url, json=json_data, params=params, timeout=self.timeout)
-            return self._handle_response(res)
-        except Timeout:
-            raise DockerTimeoutError(f"Request to {url} timed out")
-        except ConnectionError as e:
-            raise DockerConnectionError(f"Failed to connect to Docker API: {str(e)}")
-        except (DockerAuthenticationError, DockerNotFoundError, DockerAPIError, DockerTimeoutError, DockerConnectionError):
-            raise
-        except RequestException as e:
-            raise DockerAPIError(f"Request failed: {str(e)}")
-
-    def check_health(self) -> bool:
-        try:
-            res = self._get("/_ping", is_text=True)
-            return "OK" in str(res)
-        except Exception as e:
-            logger.warning(f"Docker health check failed: {e}")
+            res = self._request("GET", "/_ping")
+            return str(res).strip() == "OK"
+        except Exception:
             return False
-            
-    def list_containers(self, all_containers: bool = True) -> List[Dict[str, Any]]:
-        return self._get("/containers/json", params={"all": all_containers})
-        
-    def inspect_container(self, container_id: str) -> Dict[str, Any]:
-        return self._get(f"/containers/{container_id}/json")
-        
-    def list_images(self) -> List[Dict[str, Any]]:
-        return self._get("/images/json")
-        
-    def list_networks(self) -> List[Dict[str, Any]]:
-        return self._get("/networks")
-        
-    def list_volumes(self) -> Dict[str, Any]:
-        # returns {"Volumes": [], "Warnings": []}
-        return self._get("/volumes")
 
-    # Mutations
-    
-    def start_container(self, container_id: str) -> None:
-        self._post(f"/containers/{container_id}/start")
-        
-    def stop_container(self, container_id: str, timeout: int = 10) -> None:
-        self._post(f"/containers/{container_id}/stop", params={"t": timeout})
-        
-    def restart_container(self, container_id: str, timeout: int = 10) -> None:
-        self._post(f"/containers/{container_id}/restart", params={"t": timeout})
-        
-    def get_container_logs(self, container_id: str, max_lines: int = 200) -> str:
-        url = f"{self.base_url}/containers/{container_id}/logs"
+    def discover_containers(self) -> List[Dict[str, Any]]:
         try:
-            res = self.session.get(url, params={"stdout": True, "stderr": True, "tail": max_lines, "timestamps": True}, timeout=self.timeout)
-            if 200 <= res.status_code < 300:
-                import re
-                clean_text = re.sub(r'[^\x20-\x7E\n\t]', '', res.text)
-                return clean_text
-            self._handle_response(res)
-        except Timeout:
-            raise DockerTimeoutError(f"Request to {url} timed out")
-        except ConnectionError as e:
-            raise DockerConnectionError(f"Failed to connect to Docker API: {str(e)}")
-        except RequestException as e:
-            raise DockerAPIError(f"Request failed: {str(e)}")
-        return ""
-
-    def get_container_stats(self, container_id: str) -> Dict[str, Any]:
-        """Get a single snapshot of container stats (CPU, memory, network I/O)."""
-        url = f"{self.base_url}/containers/{container_id}/stats"
-        try:
-            # stream=False gives one snapshot and closes
-            res = self.session.get(url, params={"stream": False}, timeout=10)
-            if 200 <= res.status_code < 300:
-                return res.json()
-            self._handle_response(res)
-        except Timeout:
-            raise DockerTimeoutError(f"Stats request timed out")
-        except ConnectionError as e:
-            raise DockerConnectionError(f"Failed to connect to Docker API: {str(e)}")
-        except RequestException as e:
-            raise DockerAPIError(f"Request failed: {str(e)}")
-        return {}
-
+            data = self._request("GET", "/containers/json?all=1")
+            return data if isinstance(data, list) else []
+        except Exception:
+            return []

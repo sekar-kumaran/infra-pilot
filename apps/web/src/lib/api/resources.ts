@@ -1,32 +1,7 @@
-import { fetchApi } from './client';
-
-export interface InfrastructureResourceResponse {
-  id: string;
-  name: string;
-  display_name: string;
-  resource_type: string;
-  provider: string;
-  status: string;
-  external_id?: string;
-  environment_id: string;
-  metadata?: Record<string, any>;
-  tags?: Record<string, string>;
-  created_at: string;
-  updated_at: string;
-}
-
+import { apiRequest } from "./client";
 export const resourcesApi = {
-  list: async (params?: Record<string, string>): Promise<InfrastructureResourceResponse[]> => {
-    const query = params ? '?' + new URLSearchParams(params).toString() : '';
-    const res = await fetchApi<any>(`/resources${query}`);
-    return res.items || [];
-  },
-
-  get: async (id: string): Promise<InfrastructureResourceResponse> => {
-    return fetchApi<InfrastructureResourceResponse>(`/resources/${id}`);
-  },
-
-  getHistory: async (id: string): Promise<any[]> => {
-    return fetchApi<any[]>(`/resources/${id}/history`);
-  }
+  list: () => apiRequest("/resources"),
+  get: (id: string) => apiRequest(`/resources/${id}`),
+  exec: (id: string, command: string, shell = "bash") => apiRequest(`/resources/${id}/exec`, { method: "POST", body: JSON.stringify({ command, shell }) }),
+  logs: (id: string, tail = 100) => apiRequest(`/resources/${id}/logs?tail=${tail}`),
 };
