@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display:flex;flex-direction:column;gap:24px;">
+    <!-- Page Header -->
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+            <span style="font-size:12px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:1px;">Page 3 &bull; Telemetry & Metrics</span>
+            <h2 style="font-size:24px;font-weight:800;margin:4px 0 6px 0;">Observability & Analytics</h2>
+            <p style="color:var(--text-muted);font-size:14px;">Real-time latency, throughput, and system health metrics scraped by Nagios and InfraPilot monitoring.</p>
+        </div>
+        <div style="display:flex;gap:8px;">
+            <button class="btn" style="background:#1e293b;border:1px solid #334155;" onclick="window.location.reload()">🔄 Refresh Metrics</button>
+            <a href="/api/metrics" target="_blank" class="btn">📊 View Raw JSON API</a>
+        </div>
+    </div>
+
+    <!-- Live Performance Meters -->
+    <div class="grid-2">
+        <div class="card">
+            <h3 style="font-size:16px;font-weight:700;margin-bottom:16px;">System Health Gauges</h3>
+            <div style="display:flex;flex-direction:column;gap:16px;">
+                <div>
+                    <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
+                        <span>CPU Load (8x vCPU)</span>
+                        <span class="mono" style="font-weight:600;">{{ "%.1f"|format(metrics.cpu_usage) }}%</span>
+                    </div>
+                    <div style="height:8px;background:#1e293b;border-radius:4px;overflow:hidden;">
+                        <div style="width: {{ metrics.cpu_usage }}%; height:100%; background:var(--primary); border-radius:4px;"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
+                        <span>Memory Allocation (16 GB)</span>
+                        <span class="mono" style="font-weight:600;">{{ "%.1f"|format(metrics.memory_usage) }}%</span>
+                    </div>
+                    <div style="height:8px;background:#1e293b;border-radius:4px;overflow:hidden;">
+                        <div style="width: {{ metrics.memory_usage }}%; height:100%; background:var(--accent); border-radius:4px;"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
+                        <span>Storage Volume (/data)</span>
+                        <span class="mono" style="font-weight:600;">34.2%</span>
+                    </div>
+                    <div style="height:8px;background:#1e293b;border-radius:4px;overflow:hidden;">
+                        <div style="width: 34.2%; height:100%; background:var(--success); border-radius:4px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 style="font-size:16px;font-weight:700;margin-bottom:16px;">Nagios Real-Time Service Probes</h3>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:#1e293b;border-radius:6px;font-size:13px;">
+                    <div>
+                        <span class="mono" style="color:var(--primary);font-weight:600;">PING / ICMP Check</span>
+                        <div style="font-size:11.5px;color:var(--text-muted);">rta 0.35ms, lost 0%</div>
+                    </div>
+                    <span style="color:var(--success);font-weight:700;font-size:12px;">OK (0)</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:#1e293b;border-radius:6px;font-size:13px;">
+                    <div>
+                        <span class="mono" style="color:var(--primary);font-weight:600;">HTTP /health Probe</span>
+                        <div style="font-size:11.5px;color:var(--text-muted);">HTTP/1.1 200 OK - 0.012s response time</div>
+                    </div>
+                    <span style="color:var(--success);font-weight:700;font-size:12px;">OK (0)</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:#1e293b;border-radius:6px;font-size:13px;">
+                    <div>
+                        <span class="mono" style="color:var(--primary);font-weight:600;">Root Partition Disk Check</span>
+                        <div style="font-size:11.5px;color:var(--text-muted);">DISK OK - free space: / 128420 MB (65%)</div>
+                    </div>
+                    <span style="color:var(--success);font-weight:700;font-size:12px;">OK (0)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prometheus Telemetry Exporter Sample -->
+    <div class="card">
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:12px;">Prometheus & Nagios Metrics Stream</h3>
+        <pre class="mono" style="background:#0f172a;padding:16px;border-radius:8px;font-size:12.5px;color:#94a3b8;overflow-x:auto;">
+# HELP cloudpulse_http_requests_total Total number of HTTP requests processed
+# TYPE cloudpulse_http_requests_total counter
+cloudpulse_http_requests_total{handler="/",code="200"} {{ metrics.requests_total }}
+cloudpulse_http_requests_total{handler="/services",code="200"} 4180
+cloudpulse_http_requests_total{handler="/analytics",code="200"} 2930
+cloudpulse_http_requests_total{handler="/admin",code="200"} 842
+
+# HELP cloudpulse_response_latency_seconds Latency in seconds
+# TYPE cloudpulse_response_latency_seconds histogram
+cloudpulse_response_latency_seconds_sum 184.22
+cloudpulse_response_latency_seconds_count {{ metrics.requests_total }}
+
+# HELP cloudpulse_system_cpu_usage Current host CPU load
+cloudpulse_system_cpu_usage {{ "%.2f"|format(metrics.cpu_usage) }}
+        </pre>
+    </div>
+</div>
+{% endblock %}

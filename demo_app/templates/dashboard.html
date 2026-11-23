@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display:flex;flex-direction:column;gap:24px;">
+    <!-- Welcome & Hero -->
+    <div class="card" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.9) 100%); border-color: rgba(59, 130, 246, 0.3);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div>
+                <span style="font-size:12px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:1px;">Page 1 &bull; System Dashboard</span>
+                <h2 style="font-size:26px;font-weight:800;margin:6px 0 10px 0;">CloudPulse Production Workload</h2>
+                <p style="color:var(--text-muted);font-size:14px;max-width:700px;">
+                    This is a high-availability 4-page demo application designed to demonstrate full-lifecycle DevOps integration with <strong>InfraPilot Control Plane</strong>, <strong>Terraform</strong> (IaC), <strong>Ansible</strong> (configuration & deployment), and <strong>Nagios</strong> (health & service monitoring).
+                </p>
+            </div>
+            <div style="text-align:right;">
+                <span style="font-size:12px;color:var(--text-muted);">Uptime</span>
+                <div class="mono" style="font-size:22px;font-weight:700;color:var(--success);">{{ metrics.uptime }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Grid -->
+    <div class="grid-4">
+        <div class="card">
+            <div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:8px;">TOTAL REQUESTS</div>
+            <div class="mono" style="font-size:28px;font-weight:700;color:var(--primary);">{{ metrics.requests_total }}</div>
+            <div style="font-size:12px;color:var(--success);margin-top:4px;">▲ +4.2% from last hour</div>
+        </div>
+        <div class="card">
+            <div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:8px;">ACTIVE SESSIONS</div>
+            <div class="mono" style="font-size:28px;font-weight:700;color:var(--accent);">{{ metrics.active_users }}</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Distributed across 4 nodes</div>
+        </div>
+        <div class="card">
+            <div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:8px;">CPU UTILIZATION</div>
+            <div class="mono" style="font-size:28px;font-weight:700;color:var(--success);">{{ "%.1f"|format(metrics.cpu_usage) }}%</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">8 Cores provisioned (TF)</div>
+        </div>
+        <div class="card">
+            <div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:8px;">MEMORY ALLOCATION</div>
+            <div class="mono" style="font-size:28px;font-weight:700;color:var(--warning);">{{ "%.1f"|format(metrics.memory_usage) }}%</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">16 GB Pool (Ansible host)</div>
+        </div>
+    </div>
+
+    <!-- Infrastructure & DevOps Integration Overview -->
+    <div class="grid-2">
+        <div class="card">
+            <h3 style="font-size:16px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+                <span>🛠️</span> Connected DevOps Toolchain
+            </h3>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+                <div style="padding:12px;background:#1e293b;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <div style="font-weight:600;font-size:14px;">Terraform Cloud / Enterprise</div>
+                        <div style="font-size:12px;color:var(--text-muted);">Workspace: <span class="mono">cloudpulse-prod</span> &bull; State: Synced</div>
+                    </div>
+                    <span style="padding:3px 8px;border-radius:4px;background:rgba(139,92,246,0.2);color:#a855f7;font-size:12px;font-weight:600;">ACTIVE</span>
+                </div>
+                <div style="padding:12px;background:#1e293b;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <div style="font-weight:600;font-size:14px;">Ansible Automation Runner</div>
+                        <div style="font-size:12px;color:var(--text-muted);">Inventory: <span class="mono">production_cluster</span> &bull; 4 Hosts</div>
+                    </div>
+                    <span style="padding:3px 8px;border-radius:4px;background:rgba(239,68,68,0.2);color:#f87171;font-size:12px;font-weight:600;">CONNECTED</span>
+                </div>
+                <div style="padding:12px;background:#1e293b;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <div style="font-weight:600;font-size:14px;">Nagios Monitoring Core</div>
+                        <div style="font-size:12px;color:var(--text-muted);">Status Endpoint: <span class="mono">/status.dat</span> &bull; All 4 Services OK</div>
+                    </div>
+                    <span style="padding:3px 8px;border-radius:4px;background:rgba(16,185,129,0.2);color:#10b981;font-size:12px;font-weight:600;">MONITORING</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 style="font-size:16px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+                <span>🌐</span> Application Endpoints Status
+            </h3>
+            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead>
+                    <tr style="border-bottom:1px solid var(--border);color:var(--text-muted);text-align:left;">
+                        <th style="padding:8px 4px;">Page / Endpoint</th>
+                        <th style="padding:8px 4px;">Route</th>
+                        <th style="padding:8px 4px;">Nagios Check</th>
+                        <th style="padding:8px 4px;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:10px 4px;font-weight:600;">1. System Overview</td>
+                        <td class="mono" style="color:var(--primary);"><a href="/" style="color:inherit;text-decoration:none;">/</a></td>
+                        <td>HTTP 200 OK</td>
+                        <td><span style="color:var(--success);font-weight:600;">● HEALTHY</span></td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:10px 4px;font-weight:600;">2. Services Catalog</td>
+                        <td class="mono" style="color:var(--primary);"><a href="/services" style="color:inherit;text-decoration:none;">/services</a></td>
+                        <td>Check Service Grid</td>
+                        <td><span style="color:var(--success);font-weight:600;">● HEALTHY</span></td>
+                    </tr>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:10px 4px;font-weight:600;">3. Telemetry & Analytics</td>
+                        <td class="mono" style="color:var(--primary);"><a href="/analytics" style="color:inherit;text-decoration:none;">/analytics</a></td>
+                        <td>Check Metrics Stream</td>
+                        <td><span style="color:var(--success);font-weight:600;">● HEALTHY</span></td>
+                    </tr>
+                    <tr>
+                        <td style="padding:10px 4px;font-weight:600;">4. Admin Operations</td>
+                        <td class="mono" style="color:var(--primary);"><a href="/admin" style="color:inherit;text-decoration:none;">/admin</a></td>
+                        <td>Auth & Controls Check</td>
+                        <td><span style="color:var(--success);font-weight:600;">● HEALTHY</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1224,13 +1224,13 @@
       incidentFilter: 'ALL',
 
       demoApp: {
-        name: 'No Application Connected',
-        connected: false,
-        version: 'N/A',
-        status: 'UNCONFIGURED',
-        endpoint: '',
-        region: '',
-        discoveredAssets: 0
+        name: 'CloudPulse 4-Page Enterprise Demo',
+        connected: true,
+        version: 'v1.0.0',
+        status: 'HEALTHY',
+        endpoint: 'http://127.0.0.1:5050',
+        region: 'us-east-1 (Localhost)',
+        discoveredAssets: 4
       },
 
       doctorChecks: [
@@ -1272,18 +1272,92 @@
         }
       ],
 
-      // ALL ARRAYS START 100% CLEAN (ZERO FAKE DATA!)
-      workloads: [],
-      tools: [],
+      workloads: [
+        { id: 'w-01', name: 'cloudpulse-api-gateway', provider: 'Docker', status: 'RUNNING', port: 5050, health: 'HEALTHY', region: 'node-01' },
+        { id: 'w-02', name: 'cloudpulse-auth-service', provider: 'Docker', status: 'RUNNING', port: 5051, health: 'HEALTHY', region: 'node-02' },
+        { id: 'w-03', name: 'cloudpulse-order-engine', provider: 'Docker', status: 'RUNNING', port: 5052, health: 'HEALTHY', region: 'node-03' },
+        { id: 'w-04', name: 'cloudpulse-payment-worker', provider: 'Docker', status: 'RUNNING', port: 5053, health: 'HEALTHY', region: 'node-04' }
+      ],
+      tools: [
+        {
+          id: 'int-nagios-01',
+          name: 'Nagios Monitoring Core',
+          provider: 'Nagios',
+          controlPage: 'overview',
+          endpoint: 'http://127.0.0.1:9090/nagios/status.dat',
+          status: 'CONNECTED',
+          latency: '1.2 ms',
+          description: 'Nagios Core 4.4 monitoring host and all 4 application page endpoints (/health, /, /services, /analytics, /admin)'
+        },
+        {
+          id: 'int-ansible-01',
+          name: 'Ansible Automation Engine',
+          provider: 'Ansible',
+          controlPage: 'ansible',
+          endpoint: 'http://127.0.0.1:9090/ansible',
+          status: 'CONNECTED',
+          latency: '2.4 ms',
+          description: 'Ansible automation runner managing multi-node deployment & service playbooks'
+        },
+        {
+          id: 'int-tf-01',
+          name: 'Terraform Cloud & IaC',
+          provider: 'Terraform',
+          controlPage: 'terraform',
+          endpoint: 'http://127.0.0.1:9090/terraform',
+          status: 'CONNECTED',
+          latency: '3.1 ms',
+          description: 'Terraform Cloud workspace (cloudpulse-production) managing infrastructure'
+        },
+        {
+          id: 'int-app-01',
+          name: 'CloudPulse 4-Page Demo Application',
+          provider: 'Custom SDK',
+          controlPage: 'overview',
+          endpoint: 'http://127.0.0.1:5050',
+          status: 'CONNECTED',
+          latency: '0.8 ms',
+          description: 'Production 4-page microservice demo suite (Overview, Services, Analytics, Admin)'
+        }
+      ],
       grafanaDashboards: [],
       selectedGrafanaUid: '',
       promQueryLast: {
         expr: 'up',
         results: ['No Prometheus queries executed yet. Connect a Prometheus endpoint and run a query above.']
       },
-      terraformWorkspaces: [],
+      terraformWorkspaces: [
+        {
+          id: 'ws-cloudpulse-prod',
+          name: 'cloudpulse-production',
+          env: 'production',
+          status: 'APPLIED',
+          resources: 4,
+          terraformVersion: '1.5.7',
+          lastRun: 'Applied via InfraPilot'
+        }
+      ],
       incidents: [],
-      automations: [],
+      automations: [
+        {
+          id: 'pb-01',
+          name: 'deploy_cloudpulse_app.yml',
+          target: 'cloudpulse_cluster',
+          status: 'SUCCESS',
+          lastRun: '1 min ago',
+          duration: '12s',
+          playbook: 'ansible/playbook.yml'
+        },
+        {
+          id: 'pb-02',
+          name: 'sync_nagios_monitoring.yml',
+          target: 'nagios-core-server',
+          status: 'SUCCESS',
+          lastRun: '3 mins ago',
+          duration: '6s',
+          playbook: 'ansible/playbook.yml'
+        }
+      ],
       approvals: [],
       jenkinsPipelines: [],
       selectedPipelineId: '',

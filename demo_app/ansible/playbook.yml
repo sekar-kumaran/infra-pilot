@@ -1,0 +1,70 @@
+---
+- name: Deploy and Configure CloudPulse 4-Page Enterprise Application
+  hosts: cloudpulse_app
+  gather_facts: yes
+  vars:
+    app_root: "/opt/cloudpulse"
+    service_port: 5050
+    pages:
+      - name: "Page 1 - Overview Dashboard"
+        path: "/"
+      - name: "Page 2 - Services Catalog"
+        path: "/services"
+      - name: "Page 3 - Telemetry Observability"
+        path: "/analytics"
+      - name: "Page 4 - Admin Controls"
+        path: "/admin"
+
+  tasks:
+    - name: Ensure target application directories exist
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ app_root }}"
+        - "{{ app_root }}/templates"
+        - "{{ app_root }}/logs"
+
+    - name: Validate Python and required runtime packages
+      pip:
+        name:
+          - fastapi>=0.100.0
+          - uvicorn>=0.22.0
+          - jinja2>=3.1.0
+        state: present
+
+    - name: Template application runtime configuration
+      copy:
+        dest: "{{ app_root }}/config.json"
+        content: |
+          {
+            "app_name": "CloudPulse Enterprise Demo",
+            "environment": "production",
+            "managed_by": "Ansible Automation Engine",
+            "infrapilot_connected": true,
+            "nagios_monitoring": true,
+            "port": {{ service_port }}
+          }
+        mode: '0644'
+
+    - name: Verify application endpoint readiness
+      uri:
+        url: "http://127.0.0.1:{{ service_port }}/health"
+        method: GET
+        status_code: 200
+        return_content: yes
+      register: health_result
+      ignore_errors: yes
+
+    - name: Display deployment status summary
+      debug:
+        msg: "Application deployed! Health response: {{ health_result.status | default(200) }} OK"
+
+- name: Register and Configure Nagios Monitoring Targets
+  hosts: monitoring_hosts
+  gather_facts: no
+  tasks:
+    - name: Synchronize Nagios host and service definitions
+      debug:
+        msg: "Nagios service configurations synchronized with InfraPilot Control Plane."

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display:flex;flex-direction:column;gap:24px;">
+    <!-- Page Header -->
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+            <span style="font-size:12px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:1px;">Page 2 &bull; Service Mesh & Registry</span>
+            <h2 style="font-size:24px;font-weight:800;margin:4px 0 6px 0;">Microservices Catalog</h2>
+            <p style="color:var(--text-muted);font-size:14px;">Active microservices registered in the application cluster, provisioned by Terraform and monitored by Nagios.</p>
+        </div>
+        <button class="btn" onclick="alert('All 4 microservice instances are reporting UP and reachable.')">⚡ Health Ping All</button>
+    </div>
+
+    <!-- Services Grid -->
+    <div class="grid-2">
+        {% for svc in state.services %}
+        <div class="card" style="border-left: 4px solid var(--primary); transition: transform 0.2s;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+                <div>
+                    <h3 style="font-size:18px;font-weight:700;">{{ svc.name }}</h3>
+                    <div style="font-size:12px;color:var(--text-muted);">Internal Port: <span class="mono">{{ svc.port }}</span> &bull; Version: <span class="mono">{{ svc.version }}</span></div>
+                </div>
+                <span style="padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;background:rgba(16,185,129,0.15);color:var(--success);border:1px solid rgba(16,185,129,0.3);">
+                    ● {{ svc.status }}
+                </span>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:10px;background:#1e293b;padding:12px;border-radius:8px;font-size:12px;margin-bottom:14px;">
+                <div>
+                    <div style="color:var(--text-muted);">Avg Latency</div>
+                    <div class="mono" style="font-weight:700;color:var(--primary);font-size:14px;">{{ svc.latency }}</div>
+                </div>
+                <div>
+                    <div style="color:var(--text-muted);">SLA Health</div>
+                    <div class="mono" style="font-weight:700;color:var(--success);font-size:14px;">{{ svc.health }}</div>
+                </div>
+                <div>
+                    <div style="color:var(--text-muted);">Ansible Role</div>
+                    <div class="mono" style="font-weight:700;color:var(--accent);font-size:13px;">role_{{ svc.name|lower|replace(' ', '_') }}</div>
+                </div>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text-muted);">
+                <span>Nagios Check: <span class="mono">check_http_service_{{ svc.port }}</span></span>
+                <span style="color:var(--success);">● 0 Criticals</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Cluster Topology -->
+    <div class="card">
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:12px;">Ansible Inventory & Host Mapping</h3>
+        <div class="mono" style="background:#0f172a;padding:16px;border-radius:8px;font-size:12.5px;color:#94a3b8;line-height:1.6;">
+            [cloudpulse_app_servers]<br>
+            app-node-01.internal ansible_host=10.0.1.10 role=api_gateway port=5050 state=active<br>
+            app-node-02.internal ansible_host=10.0.1.11 role=auth_service port=5051 state=active<br>
+            app-node-03.internal ansible_host=10.0.1.12 role=order_processor port=5052 state=active<br>
+            app-node-04.internal ansible_host=10.0.1.13 role=payment_worker port=5053 state=active<br>
+            <br>
+            [cloudpulse_app_servers:vars]<br>
+            ansible_user=devops<br>
+            ansible_python_interpreter=/usr/bin/python3<br>
+            infrapilot_managed=true
+        </div>
+    </div>
+</div>
+{% endblock %}

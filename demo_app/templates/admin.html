@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display:flex;flex-direction:column;gap:24px;">
+    <!-- Page Header -->
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+            <span style="font-size:12px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:1px;">Page 4 &bull; Admin & Operations</span>
+            <h2 style="font-size:24px;font-weight:800;margin:4px 0 6px 0;">DevOps Management & System Controls</h2>
+            <p style="color:var(--text-muted);font-size:14px;">Trigger Ansible playbooks, manage Terraform workspace state, and toggle system operational modes.</p>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <button class="btn" id="maint-btn" onclick="toggleMaintenance()" style="background:{% if state.maintenance_mode %}var(--success){% else %}var(--danger){% endif %};">
+                {% if state.maintenance_mode %}🟢 Exit Maintenance Mode{% else %}🔴 Toggle Maintenance Mode{% endif %}
+            </button>
+        </div>
+    </div>
+
+    <!-- Quick Operations -->
+    <div class="grid-2">
+        <div class="card">
+            <h3 style="font-size:16px;font-weight:700;margin-bottom:14px;">⚙️ Runtime Feature Flags</h3>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+                {% for flag, val in state.feature_flags.items() %}
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#1e293b;border-radius:8px;">
+                    <div>
+                        <div class="mono" style="font-size:13px;font-weight:600;">{{ flag }}</div>
+                        <div style="font-size:11.5px;color:var(--text-muted);">Runtime configuration flag</div>
+                    </div>
+                    <span style="font-size:12px;font-weight:700;color:{% if val %}var(--success){% else %}var(--text-muted){% endif %};">
+                        {% if val %}ENABLED (true){% else %}DISABLED (false){% endif %}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 style="font-size:16px;font-weight:700;margin-bottom:14px;">🚀 DevOps Pipeline Actions</h3>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#1e293b;border-radius:8px;">
+                    <div>
+                        <div style="font-size:13.5px;font-weight:600;">Ansible Playbook Dispatch</div>
+                        <div style="font-size:11.5px;color:var(--text-muted);">Run <span class="mono">deploy_cloudpulse.yml</span> on all inventory hosts</div>
+                    </div>
+                    <button class="btn" style="background:#ee0000;font-size:12px;" onclick="triggerAction('Ansible Playbook: Deployment completed successfully across 4 nodes.')">Run Playbook</button>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#1e293b;border-radius:8px;">
+                    <div>
+                        <div style="font-size:13.5px;font-weight:600;">Terraform Cloud Plan &amp; Apply</div>
+                        <div style="font-size:11.5px;color:var(--text-muted);">Workspace: <span class="mono">cloudpulse-production</span></div>
+                    </div>
+                    <button class="btn" style="background:#844fba;font-size:12px;" onclick="triggerAction('Terraform: Plan generated: 0 to add, 0 to change, 0 to destroy. In sync.')">Sync IaC</button>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#1e293b;border-radius:8px;">
+                    <div>
+                        <div style="font-size:13.5px;font-weight:600;">Nagios Service Re-check</div>
+                        <div style="font-size:11.5px;color:var(--text-muted);">Force immediate check of all 4 page endpoints</div>
+                    </div>
+                    <button class="btn" style="background:#10b981;font-size:12px;" onclick="triggerAction('Nagios Core: Schedule immediate check executed. All 4 services returned 200 OK.')">Check Services</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Execution Output Box -->
+    <div class="card">
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:10px;">📋 Action Console Output</h3>
+        <div id="console-output" class="mono" style="background:#0f172a;padding:14px;border-radius:8px;font-size:12px;color:#38bdf8;min-height:70px;">
+            [System Ready] Ready for DevOps operations. Click any pipeline action above to execute.
+        </div>
+    </div>
+</div>
+
+<script>
+    async function toggleMaintenance() {
+        try {
+            const res = await fetch('/api/admin/toggle-maintenance', { method: 'POST' });
+            const data = await res.json();
+            const log = document.getElementById('console-output');
+            log.innerHTML = `[${new Date().toLocaleTimeString()}] Maintenance Mode toggled to: <strong>${data.maintenance_mode ? 'ENABLED (Service returning 503)' : 'DISABLED (Service returning 200 OK)'}</strong>`;
+            setTimeout(() => window.location.reload(), 1200);
+        } catch (e) {
+            alert('Error toggling maintenance mode');
+        }
+    }
+
+    function triggerAction(msg) {
+        const log = document.getElementById('console-output');
+        log.innerHTML = `[${new Date().toLocaleTimeString()}] 🚀 <strong>${msg}</strong>`;
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,85 @@
+# Nagios Core Status Data File (Generated for InfraPilot Integration)
+# Format parsed by NagiosStatusParser
+
+info {
+    created=1732360000
+    version=4.4.6
+    last_update_check=1732360000
+}
+
+hoststatus {
+    host_name=CloudPulse-App-Server
+    current_state=0
+    plugin_output=PING OK - Packet loss = 0%, RTA = 0.38 ms
+    last_check=1732360000
+    last_state_change=1732350000
+    current_attempt=1
+    max_attempts=3
+    problem_has_been_acknowledged=0
+    notifications_enabled=1
+}
+
+servicestatus {
+    host_name=CloudPulse-App-Server
+    service_description=Page 1 - Overview Dashboard
+    current_state=0
+    plugin_output=HTTP OK: HTTP/1.1 200 OK - 0.014 second response time
+    last_check=1732360000
+    last_state_change=1732350000
+    current_attempt=1
+    max_attempts=3
+    problem_has_been_acknowledged=0
+    notifications_enabled=1
+}
+
+servicestatus {
+    host_name=CloudPulse-App-Server
+    service_description=Page 2 - Services Catalog
+    current_state=0
+    plugin_output=HTTP OK: HTTP/1.1 200 OK - 0.018 second response time
+    last_check=1732360000
+    last_state_change=1732350000
+    current_attempt=1
+    max_attempts=3
+    problem_has_been_acknowledged=0
+    notifications_enabled=1
+}
+
+servicestatus {
+    host_name=CloudPulse-App-Server
+    service_description=Page 3 - Telemetry Observability
+    current_state=0
+    plugin_output=HTTP OK: HTTP/1.1 200 OK - 0.016 second response time
+    last_check=1732360000
+    last_state_change=1732350000
+    current_attempt=1
+    max_attempts=3
+    problem_has_been_acknowledged=0
+    notifications_enabled=1
+}
+
+servicestatus {
+    host_name=CloudPulse-App-Server
+    service_description=Page 4 - Admin Operations
+    current_state=0
+    plugin_output=HTTP OK: HTTP/1.1 200 OK - 0.021 second response time
+    last_check=1732360000
+    last_state_change=1732350000
+    current_attempt=1
+    max_attempts=3
+    problem_has_been_acknowledged=0
+    notifications_enabled=1
+}
+
+servicestatus {
+    host_name=CloudPulse-App-Server
+    service_description=Health Check Endpoint
+    current_state=0
+    plugin_output=HTTP OK: Status code 200 - application state UP
+    last_check=1732360000
+    last_state_change=1732350000
+    current_attempt=1
+    max_attempts=3
+    problem_has_been_acknowledged=0
+    notifications_enabled=1
+}
